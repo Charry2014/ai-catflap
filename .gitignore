@@ -1,0 +1,12 @@
+**/venv/**
+data/
+
+__pycache__/
+.DS_Store
+.vscode/
+
+recordings/
+log/
+secrets.py
+*.mp4
+*.jpg
