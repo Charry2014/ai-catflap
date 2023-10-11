@@ -6,42 +6,71 @@ An AI based mouse detecting cat flap extension for the Sure Flap cat flap. Inspi
 
 During the COVID pandemic we got two cats as a way of distracting the children from the horrors of being locked up at home together. The cats, being cats, set about discovering the neighbourhood and then filling our house with all manner of furry critters. These poor animals are unfortunate trophies of their hunting ability, to show us how much they love us, or to help us hone our own hunting abilities - depending what you believe about cats' motivations. Anyway, we did not find any of these options particularly appealing - and certainly not practicing our hunting ability in our own living room. 
 
-Our cats are good hunters. We have had many, many mice, mice of all kinds - big and small, small rats, voles, even a baby sand martin. Some have been very much alive - running around the house, eating the cats' food, climbing the curtains, making nests under the sofa - and we have indeed honed our ability to catch and eject these. We are first aware of the presence of a furry guest when we see the cats demonstrating hunting behaviours around the house, then we step in. Worse, however, are the ones alive enough to escape the cat, but then die under the sofa - you can imagine what happens next.
+Our cats are good hunters. We have had many furry critters of all kinds - big and small, small rats, voles, even a baby sand martin. Some have been very much alive - running around the house, eating the cats' food, climbing the curtains, making nests under the sofa - and we have indeed honed our ability to catch and eject these. We are first aware of the presence of a furry guest when we see the cats demonstrating hunting behaviours around the house, then we step in. Worse, however, are the ones alive enough to escape the cat, but then die under the sofa - you can imagine what happens next.
 
 Given this situation we had to do something. Being a pragmatist the first step was to restrict the cat flap to exit-only, but being an engineer I set about providing a better solution to the problem.
 
 # Getting Started
 ## Background
 
-This has been a long project with much learning along the way, and while everyone here wants to get down to the cool machine learning stuff remember that you to spend time on thinking through the environment in which this will work. These instructions have become long because this is not just a machine learning problem - to succeed you must master many things. You will have a camera, making videos of your cats, in their natural behaviours, and getting a clean, well exposed shot of your cat for the ML to work on is paramount. Avoiding false triggers from other background motion is really helpful. Our cats come in mostly at night so the Pi is using its IR illumination, but they also want to get in in daylight. This needed a wooden construction around the cat flap to guide the cats' approach so they can pose for the camera.
+Describing this as an AI project is a bit like saying that driving a car is just a matter of turning the wheel. There are many skills to master and despite the plentiful YouTube videos showing you ML on the Pi in 10 minutes, this has been a long project with many problems overcome. The machine learning part of this is by far not the most difficult, thanks to the work of those wonderful people at Google - but getting to that point is hard.
 
-Here is the construction around the cat flap to guide the cats past the camera:
-![20230224_094731](https://user-images.githubusercontent.com/58067238/221138634-3a96eb61-15f4-4785-8fe3-4012f59f9fb6.jpg)
+Here, in approximate sequence of necessity, are those stages.
 
-And here is the Pi in its weather-resistant box:
-![20230224_094748](https://user-images.githubusercontent.com/58067238/221138742-7d43f4b6-a6c0-4874-99c4-a8b0db862b1b.jpg)
+## Setup a Development Environment
 
-The sun comes round and in certain times of the year blinds the camera. All these things complicate the cool stuff. At first the video was streaming over wifi but despite a high performance Unifi Wifi setup, strong signal and careful setup it was still unreliable so now it uses a LAN cable to the Pi.
+As good as the Pi OS is, it is still more comfortable to develop on a proper desktop system - I use either a Debian Linux (Ubuntu) desktop or macOS for this. Here comes the first gotcha - this is now **cross-platform development**. not every version of Python is easily installable on the Pi, so you will want to use the same version on the desktop as available on the Pi - currently Python 3.9.10.
 
-Then getting all the links in the long chain from cat-posing-for-camera to functioning machine learning model required a good deal of fiddling. These instructions might help you get there faster.
+Then for an IDE - I use [Visual Studio Code](https://code.visualstudio.com/) and the [Remote - SSH](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) plugin is very comfortable for debugging on the Pi. From the command palette you can then Add Remote host and enter `<pi_username>@<your.pi.ipaddress>`. The Pi have SSH keys generated with `ssh-keygen` and then used for enabling [key based SSH login](https://www.geekyhacker.com/2021/02/15/configure-ssh-key-based-authentication-on-raspberry-pi/) to the Pi and for GitHub.
 
-## Architecture Overview
+Oh, and of course, only develop Python inside a virtual environment.
 
-As good as the Raspberry Pi has become it is still more comfortable to develop on the desktop (MacBook Pro or various Debian Linux flavours, in my case) so the Camera Pi was set up in the beginning to stream video into the LAN. This meant that we could watch the cats come and go from our computers & phones and add a video window to the Home Assistant dashboard in the kitchen. This helped create interest in the family and it was no longer just 'one of Daddy's projects' but something for 'all of us'. It was also very helpful to have the video streaming to the phone while adjusting the camera and getting it pointing exactly right. Having studied the cats' approach paths it was just a matter of pointing the camera, and restricting some approaches that avoided the camera.
+## Data Collection
 
-For any ML project the first step is data collection - so this means motion detection, recording of videos, extraction of still images, classification of the stills, and training a model.
+Without data there is no machine learning. I set up a Pi with a camera and added some motion detection software to it. This was cobbled together using the Raspberry Pi example for streaming from a camera, and the OpenCV example for motion detection. The code here is so ugly I will share it only when I have cleaned it up. The stream was very useful to be able to monitor the camera live from anywhere on my LAN, very handy for early understanding how the camera siting was working, or not.
 
-![image](https://user-images.githubusercontent.com/58067238/221131208-d5e5af75-dab2-4e0f-b912-3472b6458bc8.png)
+Credits here go to the [Pi standard streaming example](http://picamera.readthedocs.io/en/latest/recipes2.html#web-streaming) - detailed instructions on [Random Nerd Tutorials](https://randomnerdtutorials.com/video-streaming-with-raspberry-pi-camera/). Note - with the switch to Bullseye the operation of the Pi camera changed completely.
 
-Given the working model then it is deployment onto the Pi and connecting to a GPIO and some electronics to control the cat flap.
-
-# Initial Development Stages
-
-There is a lot to cover here so I will try to break it down into some logical elements. These parts are critical to making this work - think through each stage and decide what will work for you.
-
-## Basic Setup
+On to the stream was a client that detected motion and recorded a 10 second video every time motion was detected. From here the first set of images were collected.
 
 You will want to make sure the Pi is mounted in the right place so the camera can see the cats, they need to be approaching the camera for a few seconds so you get some good clean shots of the cat's face, well exposed, and of course you want to make sure the Pi is protected from the weather, and has a wired LAN connection.
+
+## Image Labelling - Preparation
+
+From the videos a series of still images was captured using VLC
+
+* Install [VLC](https://www.videolan.org/vlc/) - follow the instructions on the site
+
+Start up VLC and configure to export JPEG files jpg into the folders above. TensorFlow Lite does not accept PNG so JPG is important! Go to VLC -> `Preferences` -> `Video tab` ->  and set the folder to somewhere sensible, the format to `JPEG`, the prefix to `$N-` so the original video name is retained in the snapshot filename and tick the `sequential numbering` box.
+
+The following labels are used - `Cat-alone`, `Cat-with-mouse`, `Cat-body`, `Background` categories. Collect as many images as your patience allows in all categories and add them to the labelling tool.
+
+The labels explained -
+* `Cat-alone` - The cat's mouth is clearly visible and there is nothing in it
+* `Cat-with-mouse` - The cat's mouth is clearly visible and there is a mouse there
+* `Cat-body` - Some other part of the cat is visible, not the mouse
+* `Background` - No part of a cat is visible, this is a false trigger and ignored in subsequent processing
+
+## Image Labelling - Label Studio
+
+* Install [Label Studio](https://labelstud.io/) in the Python virtual environment. Command lines using `pip` given below.
+
+```
+sudo apt install git python3-pip  python03-venv -y
+python3 -m venv venv 
+source venv/bin/activate
+pip install -U label-studio
+label-studio &
+```
+
+Set up a project, add the labels, and import your images. 
+
+
+
+
+
+
+
 
 ## Configure the Pi
 Using the Raspberry Pi 4 with 4GB RAM. The Pi 4 is basically impossible to buy now in 2023 unless you pay a scalper 3x what it should cost, but the Orange Pi 5 looks like a good alternative - it also has an ARM Mali-G610 GPU as well as a 6 TOPS NPU and of course the A55 quad core CPU so it might be much faster, anyway, I digress. You need a Pi for this.
