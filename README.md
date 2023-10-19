@@ -63,7 +63,7 @@ pip install -U label-studio
 label-studio &
 ```
 
-Set up a project, add the labels, and import your images. 
+Set up a project, add the labels, and import your images. Follow the instructions.
 
 knowing how to label images is a tricky decision in itself - experience showed that the detections are better when the labels are applied close-cropped to the cat's head for `Cat-alone` like this:
 ![image](https://github.com/Charry2014/ai-catflap/assets/58067238/c60d5423-ce57-43c7-9a18-78fa0c2e954a)
@@ -71,8 +71,24 @@ knowing how to label images is a tricky decision in itself - experience showed t
 For the `Cat-with-mouse`case the labels are centered around the mouse body, but with the cat's eyes in the area
 ![image](https://github.com/Charry2014/ai-catflap/assets/58067238/f062568c-6abb-453a-84dd-6b1d0d317cbe)
 
+Perhaps an expert in how these models work can clarify or elaborate what exactly would work best here, but for now this is OK.
 
+## Export the Images and Labels
 
+Once you have gathered a few images (the more the better) they need to be exported from Label Studio in the Pascal VOC format, which exports the image and a .xml file that describes the labels and areas. Unfortunately the format produced by Label Studio does not work directly with Google TensorFlow Lite so it is necessary to run a script to do the conversion.
+
+On the Mac Label Studio will default to downloading a .zip to the `/Users/[username]/Downloads` directory. Unpack this into the same place and the script looks there to find a **folder** named in the Label Studio format, which is something like this `project-1-at-2023-09-08-08-26-e3408fe3`.  
+
+After unpacking the .zip, simply run the script.
+```
+project-root# ./bin/buildtflite.sh 
+```
+
+The scripting here is very simple and certainly will not work in many situations simply as-is but the important stuff happens in `src/buildtflite/buildtflite.py` and the associated `requirements.txt` to install the dependencies. The attentive amongst you may notice that the versions specified are far from the newest but at least on macOS this is the newest combination that will work.
+
+## Train the Model
+
+The `./bin/buildtflite.sh` script will create the model for you from the labelled image data, however it is worth drawing attention to the iterative nature of this. Take some images, label them, run them in your target system, have that record the images it classifies, take any images that are incorrectly classified by the model and use them as new training images, repeat.
 
 
 # Modifying the Cat Flap
