@@ -71,6 +71,8 @@ knowing how to label images is a tricky decision in itself - experience showed t
 For the `Cat-with-mouse`case the labels are centered around the mouse body, but with the cat's eyes in the area
 ![image](https://github.com/Charry2014/ai-catflap/assets/58067238/f062568c-6abb-453a-84dd-6b1d0d317cbe)
 
+From these images you will also see that one is taken in natural light, and the other is taken with IR illumination from the Pi camera. You will need sample images of all labels in both lighting conditions. 
+
 Perhaps an expert in how these models work can clarify or elaborate what exactly would work best here, but for now this is OK.
 
 ## Export the Images and Labels
