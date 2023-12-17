@@ -1,6 +1,7 @@
 # catflap
-An AI based mouse detecting cat flap extension for the Sure Flap cat flap. Inspired by a [project by Gerrit Bojen](https://towardsdatascience.com/keep-your-home-mouse-free-with-an-ai-powered-cat-flap-a67c686ce394).
+An AI based mouse detecting cat flap extension for the Sure Flap cat flap. Inspired by a [project by Gerrit Bojen](https://towardsdatascience.com/keep-your-home-mouse-free-with-an-ai-powered-cat-flap-a67c686ce394). It includes collecting data, training a model, deploying to the Pi, monitoring performance.
 
+Describing this as an AI project is a bit like saying that driving a car is just a matter of turning the wheel. There are many skills to master and despite the plentiful YouTube videos showing you ML on the Pi in 10 minutes, this has been a long project with many problems overcome. The machine learning part of this is by far not the most difficult, thanks to the work of those wonderful people at Google - but getting to that point is hard.
 
 # Introduction
 
@@ -12,8 +13,6 @@ Given this situation we had to do something. Being a pragmatist the first step w
 
 # Getting Started
 ## Background
-
-Describing this as an AI project is a bit like saying that driving a car is just a matter of turning the wheel. There are many skills to master and despite the plentiful YouTube videos showing you ML on the Pi in 10 minutes, this has been a long project with many problems overcome. The machine learning part of this is by far not the most difficult, thanks to the work of those wonderful people at Google - but getting to that point is hard.
 
 Here, in approximate sequence of necessity, are those stages.
 
@@ -63,151 +62,66 @@ pip install -U label-studio
 label-studio &
 ```
 
-Set up a project, add the labels, and import your images. 
+Set up a project, add the labels, and import your images. Follow the instructions.
 
+knowing how to label images is a tricky decision in itself - experience showed that the detections are better when the labels are applied close-cropped to the cat's head for `Cat-alone` like this:
+![image](https://github.com/Charry2014/ai-catflap/assets/58067238/c60d5423-ce57-43c7-9a18-78fa0c2e954a)
 
+For the `Cat-with-mouse`case the labels are centered around the mouse body, but with the cat's eyes in the area
+![image](https://github.com/Charry2014/ai-catflap/assets/58067238/f062568c-6abb-453a-84dd-6b1d0d317cbe)
 
+From these images you will also see that one is taken in natural light, and the other is taken with IR illumination from the Pi camera. You will need sample images of all labels in both lighting conditions. 
 
+Perhaps an expert in how these models work can clarify or elaborate what exactly would work best here, this is complex and a field of study in its own right. For now this is OK.
 
+## Export the Images and Labels
 
+Once you have gathered a few images (the more the better) they need to be exported from Label Studio in the Pascal VOC format, which exports the image and a .xml file that describes the labels and areas. Unfortunately the format produced by Label Studio does not work directly with Google TensorFlow Lite so it is necessary to run a script to do the conversion.
 
+On the Mac Label Studio will default to downloading a .zip to the `/Users/[username]/Downloads` directory. Unpack this into the same place and the script looks there to find a **folder** named in the Label Studio format, which is something like this `project-1-at-2023-09-08-08-26-e3408fe3`.  
 
-## Configure the Pi
-Using the Raspberry Pi 4 with 4GB RAM. The Pi 4 is basically impossible to buy now in 2023 unless you pay a scalper 3x what it should cost, but the Orange Pi 5 looks like a good alternative - it also has an ARM Mali-G610 GPU as well as a 6 TOPS NPU and of course the A55 quad core CPU so it might be much faster, anyway, I digress. You need a Pi for this.
-
-The Pi in this example have stock [Raspberry Pi OS](https://www.raspberrypi.com/software/) installed with the GUI, and have been configured to allow ssh and VNC access - see `Preferences` -> `Raspberry Pi Configuration` under the Raspberry menu. The Pi with the camera on it will also need the camera enabled in the same place. The Pi needs the GUI so you can display images for orienting the camera and tuning the motion detection target area later. While technically you could run all these servers headless in practice it turned out to be a real pain to do this.
-![image](https://user-images.githubusercontent.com/58067238/221145036-22bf5258-621f-4ddc-a38c-2d5bb498351f.png)
-
-The Pi have SSH keys generated with `ssh-keygen` and then used for enabling [key based SSH login](https://www.geekyhacker.com/2021/02/15/configure-ssh-key-based-authentication-on-raspberry-pi/) to the Pi and for GitHub. I do this for convenience in my LAN, not for security.
-
-This project is created with [Visual Studio Code](https://code.visualstudio.com/) and the Remote - SSH(https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) plugin is very comfortable for debugging on the Pi. From the command palette you can then Add Remote host and enter `<pi_username>@<your.pi.ipaddress>`
-
-## Python & Virtual Environments
-
-Python is a wonderful language but not without its problems. This project does not use the latest, greatest Python because it is necessary to make sure that the main modules - TensorFlow Lite and OpenCV among them - are compatible. Generally I use [Python 3.9.10](https://www.python.org/downloads/release/python-3910/). Everyhwere Python is used in this project it is running in a virtual environment - this is good practice for Python.
-
-[Install OpenCV for the Raspberry Pi](https://raspberrypi-guide.github.io/programming/install-opencv)
-
-
-## Parts List
-
-* Raspberry Pi 4 with 4GB RAM and 32GB SD card
-* Raspberry Pi Camera with IR illumination
-* Box – BOPLA M 220 G Gehäuse Serie Euromas I, 160 x 80 x 55 mm, IP65
-* PCB Spacers for Raspberry Pi
-*  4x M2.5 Abstandsbolzen, Länge 20 mm
-*  4x M2.5 4 mm Schraube
-*  4x Mutter
-
-## Mount the Pi and Start Streaming
-
-Credits here go to the [Pi standard streaming example](http://picamera.readthedocs.io/en/latest/recipes2.html#web-streaming) - detailed instructions on [Random Nerd Tutorials](https://randomnerdtutorials.com/video-streaming-with-raspberry-pi-camera/).
-Connect to the camera Pi with VNC and start the streaming with:
+After unpacking the .zip, simply run the script.
 ```
-mkdir catflap
-cd catflap
-git clone git@github.com:Charry2014/catflap.git
-cd streamer
-python3 pi_streamer.py
-```
-Standard resolution is 640 x 480. With the Pi streaming you can start to orientate the Pi correctly. Viewing the video stream on your phone in a browser is easy on `http://<your.pi.ipaddress>:8000/stream.mjpg`. The camera is actually 1080p but we do not need all those extra pixels.
-
-## Set up The Motion Detection & Recorder
-In my example I am recording to the local storage on the Pi and then using a cronjob to copy these every hour to my NAS. This is because I already have my NAS mounted everywhere in the network and it is then easier to review the recorded videos than having the videos pile up on the Pi. Make your own choices here - but remember you will frequently need to watch and filter the videos so making this easy is a good idea.
-
-The recorder in this example is running on a Ubuntu Linux 20.04 LTS server - as before clone the repository into a `./catflap` directory and then this should get you set up:
-```
-cd motiondetect
-./setup.sh
-python3 motiondetect.py --stream http://<your.pi.ipaddress>:8000/stream.mjpg --record_path ./recording --trigger <x,y,w,h> --show_trigger --record_overlays
-```
-The `x,y,w,h` coordinates to the `--trigger` option define the area used to trigger the motion detection so you can hone this to avoid false triggers from other moving items such as plants blowing in the wind or rain, snow, other flying creatures etc. There is much that can be done to refine the trigger and further avoid false positives but for now we have this simple area. 
-
-**Note** - The options `--show_trigger` and `--record_overlays` are good for initial tuning but you will want to remove these when you start collecting real videos for ML training.
-
-Use a cronjob to copy the recordings `@hourly /path/to/catflap/copy_recordings.sh`.
-
-# Data Collection & Labelling
-This is the start of the good stuff - you now have your Pi set up, camera streaming, detecting motion and recording videos to a sensible place. The cats, when they show up in these videos, are well exposed at least for a few seconds and you get at least for a brief moment a nice shot of the cat's head. 
-
-It is easy to get into a big mess handling loads of videos, still images taken from these, and keeping 'new' videos from those you have already labelled.
-
-
-## Machine Learning Basics
-
-It is helpful to define early on the categories that we will separate videos into as this feeds through a lot of decisions that have to be made when handling recordings and throughout the machine learning process. 
-
-For mouse detection let's choose:
-* `Cat-alone` - there is a cat without a mouse
-* `Cat-with-mouse` - there is a cat who is carrying a mouse
-* `Background` - nothing to see here
-
-When I review the recorded videos I delete the irrelevant ones then sort them into folders `./incoming/cat-alone`, `./incoming/cat-with-mouse` etc. so I know these are new incoming videos and then I can label them in a organised fashion.
-
-In ML terms there are two approaches that might be interesting to try for mouse detection - these are *Image Classification* and *Object Detection*. There are many posts on the 'net about this but it is enough to understand that Image Classification just aims to say what the image contains - ie. picture of dog, picture of cat, picture of cat with mouse, etc. Object detection goes a level deeper and attempts to find where on the image you can see any dog, cat, banana, whatever. This project uses an Image Classification approach. There are also many frameworks available and [Q-Engineering](https://qengineering.eu/deep-learning-software-for-raspberry-pi-and-alternatives.html) have a nice summary of these. This project just uses Google's TensorFlow Lite.
-
-## Getting Started
-
-* Install [VLC](https://www.videolan.org/vlc/) - follow the instructions on the site
-* Install [Label Studio](https://labelstud.io/) in the Python virtual environment. Command lines using `pip` given below.
-
-```
-sudo apt install git python3-pip  python03-venv -y
-python3 -m venv venv 
-source venv/bin/activate
-pip install -U label-studio
-label-studio &
+project-root# ./bin/buildtflite.sh 
 ```
 
-## Still Image Extraction
+The scripting here is very simple and certainly will not work in many situations simply as-is but the important stuff happens in `src/buildtflite/buildtflite.py` and the associated `requirements.txt` to install the dependencies. The attentive amongst you may notice that the versions specified are far from the newest but at least on macOS this is the newest combination that will work.
 
-Next we filter videos into - `Cat-alone`, `Cat-with-mouse`, `Background` categories. Here I make a folder structure  `./<date>/cat-alone`, `./<date>/cat-with-mouse` and I move as many of the videos from `incoming` as I have time to label into this folder. This way it is clear which videos have been processed.
-Start up VLC and configure to export JPEG files jpg into the folders above. TensorFlow Lite does not accept PNG so JPG is important - I did not know this and labelled a bunch of images JPG - doh! Go to VLC -> `Preferences` -> `Video tab` ->  and set the folder to somewhere sensible, the format to `JPEG`, the prefix to `$N-` so the original video name is retained in the snapshot filename and tick the `sequential numbering` box.
+## Train the Model
 
-image.png
+The `./bin/buildtflite.sh` script will create the model for you from the labelled image data, however it is worth drawing attention to the iterative nature of this. Take some images, label them, run them in your target system, have that record the images it classifies, take any images that are incorrectly classified by the model and use them as new training images, repeat.
 
+# Live Deployment
 
-## Labelling
+Once you have trained a model and have the Pi in place it is time to start using the output to enable and disable the cat flap.
 
-Image Studio
-Import images
+## Modifying the Cat Flap
+The Sure Flap cat flap is a great product, and here is a shout out to the company as they are awesome because they even ship spare parts allowing users to repair their products which is fantastic. Nevertheless it must be stated clearly that **following these instructions will obviously void any warranty on your cat flap and you do so at your own risk**. The modification is simple though and should be reversible - we need to just take control of the cat flap lock and unlock mechanism at the bottom of the cat door.
 
-## Building a TensorFlow Lite Model
+You can see the [Sure Flap cat flap disassembly instructions on the FCC website](https://fccid.io/XO9-FLAP-1001/Internal-Photos/INTERNAL-PHOTOS-1238385). If you have never used the FCC website it is sometimes very helpful for finding out the internal details of many products. We will cut one of the wires and feed it through the normally closed terminals on the relay (COM1 and NC1 terminals in the image below), using some wire to extend the cable.
 
-Export from Label Studio as Pascal VOC format 
-Run the Python script to modify the XML and convert .png to jpg.
+The modifications can be made with the cat flap in place, just undo the four screws holding the front plate on. Two at the top are inside the battery compartment, two at the bottom are behind the pop-out covers.
+![20231217_172103](https://github.com/Charry2014/ai-catflap/assets/58067238/cf14d0df-3d7c-4fa4-969b-2cfb2d589ee7)
 
+The relay is a [Debo 2 channel](https://www.reichelt.de/entwicklerboards-relais-modul-2-channel-5-v-srd-05vdc-sl-c-debo-relais-2ch-p242810.html?&nbc=1) that is connected to the Pi's 5V and GND lines, and of course the GPIO. 
+![image](https://github.com/Charry2014/ai-catflap/assets/58067238/c7b4b85e-a5fe-4dda-8ff4-da00cbc959ff)
 
-# Testing the ML Model
+As the Pi and the relay are on the outside of the house it is necessary to drill a hole through the flap to pass the wires from the flap control motor. That's it.
 
-## Installing on the Cat Cam Pi
+The choice of wires is arbitrary but choosing the red wire has the advantage that it may be possible to monitor the voltage on the wire to see if the flap is trying to open the locking mechanism. As you can see in the photos below I cut the black wire.
 
-https://github.com/tensorflow/examples/tree/master/lite/examples/object_detection/raspberry_pi
+## Installation
+In the photo below you can see the installation. Here a small piece of circuit board is used to hold a socket to short the wire together again if ever it should be necessary to disconnect the Pi. 
+![20231217_172302](https://github.com/Charry2014/ai-catflap/assets/58067238/9176da86-8b6b-4c17-8cfa-fed9109dbaa7)
+There is plenty of space inside the housing for the extra wires, and the hole drilled for the wires to the relay is in the bottom left. The wires are held in place with a piece of duct tape. Very elegant.
 
+## Monitoring
+As with all installed control devices some monitoring will be needed to detect faults. 
 
+1. Logging - all events from the control code are logged. These logs are quite noisy but detailed and could be uploaded to a logging service such as Grafana for better visibility.
+2. Recordings - images are recorded of the cats comings and goings, with their classifications from the Tensor Flow Lite model
+3. Message Sequence Diagrams generated from the logs - these are not classic message sequence diagrams but the [PlantUML](https://plantuml.com/sequence-diagram) engine is (mis)used to draw an informative diagram of what happens in a log. See `puml/main.py` for more.
+4. Status Webpage - to-do but coming soon - the Pi hosts a webpage that shows the camera stream, the tail of the logfile, and the last evaluation result.
 
-```
-cd mousetest
-
-sudo apt-get install libatlas-base-dev
-sudo apt-get install build-essential cmake pkg-config libjpeg-dev libtiff5-dev libjasper-dev libpng-dev libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev libfontconfig1-dev libcairo2-dev libgdk-pixbuf2.0-dev libpango1.0-dev libgtk2.0-dev libgtk-3-dev libatlas-base-dev gfortran libhdf5-dev libhdf5-serial-dev libhdf5-103 python3-pyqt5 python3-dev -y
-
-
-python3 -m pip install pip --upgrade
-python3 -m pip install -r requirements.txt
-
-python3 motiondetect.py 
-        --trigger 250,180,350,280
-        --show_trigger
-        --record_overlays
-```
-
-
-
-
-# Modifying the Cat Flap
--- work in progress --
-
-[Sure Flap cat flap disassembly instructions on the FCC website](https://fccid.io/XO9-FLAP-1001/Internal-Photos/INTERNAL-PHOTOS-1238385). If you have never used the FCC website it is sometimes very helpful for finding out the internal details of many products.
-
+These are future extensions
 
