@@ -1,0 +1,42 @@
+@startuml flow
+start
+
+:Initialise
+Create tflite object;
+
+:Open camera and start stream;
+
+
+repeat :Get next image frame;
+    repeat :Run motion detection on target area;
+
+    repeat while (Motion detected?) is (No)
+        ->Yes;
+
+    :Set FPS marker;
+    repeat:Run TFLite model;
+
+    if (Detection returned __Cat-alone__\nor __Cat-with-mouse__?) then (No)
+       ->False trigger or\nTrigger end;
+    if (Recording active?) then (Yes)
+        :Stop recording;
+        break
+    ->No;
+    endif
+    else (Yes)
+         :something;
+            :Calculate FPS;
+            :Add overlays to frame\n__FPS__, __label__, __% certainty__;
+            if (Recording active?) then (No)
+                :Start recording;
+            endif
+            ->Yes;
+            :Record frame;
+    endif
+    repeat while (Get next image frame) is (Yes)
+    ->No;
+
+repeat while (Camera open?) is (Yes)
+->No;
+stop
+@enduml

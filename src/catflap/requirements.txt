@@ -1,0 +1,16 @@
+argparse
+numpy>=1.20.0  # To ensure compatibility with OpenCV on Raspberry Pi.
+opencv-python~=4.5.3.56
+tflite-support>=0.4.2
+protobuf>=3.18.0,<4
+
+# pip install RPi.GPIO
+#picamera2
+
+# sudo apt install -y python3-pyqt5 python3-opengl
+# sudo apt install -y python3-picamera2
+# sudo apt install libcap-dev
+# sudo apt install -y python3-libcamera
+# cp -R /usr/lib/python3/dist-packages/libcamera/ ./venv/lib/python3.9/site-packages/
+# cp -R /usr/lib/python3/dist-packages/pykms/ ./venv/lib/python3.9/site-packages/
+
