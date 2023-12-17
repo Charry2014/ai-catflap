@@ -96,8 +96,32 @@ The `./bin/buildtflite.sh` script will create the model for you from the labelle
 Once you have trained a model and have the Pi in place it is time to start using the output to enable and disable the cat flap.
 
 ## Modifying the Cat Flap
--- work in progress --
+The Sure Flap cat flap is a great product, and here is a shout out to the company as they are awesome because they even ship spare parts allowing users to repair their products which is fantastic. Nevertheless it must be stated clearly that **following these instructions will obviously void any warranty on your cat flap and you do so at your own risk**. The modification is simple though and should be reversible - we need to just take control of the cat flap lock and unlock mechanism at the bottom of the cat door.
 
-[Sure Flap cat flap disassembly instructions on the FCC website](https://fccid.io/XO9-FLAP-1001/Internal-Photos/INTERNAL-PHOTOS-1238385). If you have never used the FCC website it is sometimes very helpful for finding out the internal details of many products.
+You can see the [Sure Flap cat flap disassembly instructions on the FCC website](https://fccid.io/XO9-FLAP-1001/Internal-Photos/INTERNAL-PHOTOS-1238385). If you have never used the FCC website it is sometimes very helpful for finding out the internal details of many products. We will cut one of the wires and feed it through the normally closed terminals on the relay (COM1 and NC1 terminals in the image below), using some wire to extend the cable.
 
+The modifications can be made with the cat flap in place, just undo the four screws holding the front plate on. Two at the top are inside the battery compartment, two at the bottom are behind the pop-out covers.
+![20231217_172103](https://github.com/Charry2014/ai-catflap/assets/58067238/cf14d0df-3d7c-4fa4-969b-2cfb2d589ee7)
+
+The relay is a [Debo 2 channel](https://www.reichelt.de/entwicklerboards-relais-modul-2-channel-5-v-srd-05vdc-sl-c-debo-relais-2ch-p242810.html?&nbc=1) that is connected to the Pi's 5V and GND lines, and of course the GPIO. 
+![image](https://github.com/Charry2014/ai-catflap/assets/58067238/c7b4b85e-a5fe-4dda-8ff4-da00cbc959ff)
+
+As the Pi and the relay are on the outside of the house it is necessary to drill a hole through the flap to pass the wires from the flap control motor. That's it.
+
+The choice of wires is arbitrary but choosing the red wire has the advantage that it may be possible to monitor the voltage on the wire to see if the flap is trying to open the locking mechanism. As you can see in the photos below I cut the black wire.
+
+## Installation
+In the photo below you can see the installation. Here a small piece of circuit board is used to hold a socket to short the wire together again if ever it should be necessary to disconnect the Pi. 
+![20231217_172302](https://github.com/Charry2014/ai-catflap/assets/58067238/9176da86-8b6b-4c17-8cfa-fed9109dbaa7)
+There is plenty of space inside the housing for the extra wires, and the hole drilled for the wires to the relay is in the bottom left. The wires are held in place with a piece of duct tape. Very elegant.
+
+## Monitoring
+As with all installed control devices some monitoring will be needed to detect faults. 
+
+1. Logging - all events from the control code are logged. These logs are quite noisy but detailed and could be uploaded to a logging service such as Grafana for better visibility.
+2. Recordings - images are recorded of the cats comings and goings, with their classifications from the Tensor Flow Lite model
+3. Message Sequence Diagrams generated from the logs - these are not classic message sequence diagrams but the [PlantUML](https://plantuml.com/sequence-diagram) engine is (mis)used to draw an informative diagram of what happens in a log. See `puml/main.py` for more.
+4. Status Webpage - to-do but coming soon - the Pi hosts a webpage that shows the camera stream, the tail of the logfile, and the last evaluation result.
+
+These are future extensions
 
