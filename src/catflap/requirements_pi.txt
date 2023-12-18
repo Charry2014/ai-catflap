@@ -1,17 +1,23 @@
-tflite-runtime==2.11.0
+argparse
+numpy==1.24.1  # To ensure compatibility with OpenCV on Raspberry Pi.
+opencv-python~=4.5.3.56
 tflite-support==0.4.3
-opencv-python==4.7.0.68
-numpy==1.23.4
-matplotlib
+tflite-runtime==2.11.0
 python-statemachine==2.0.0
-# Raspberry Pi Only
-#RPi.GPIO
-#picamera2
+RPi.GPIO
+picamera2==0.3.12
+
+#numpy==1.23.4
+#matplotlib
+
+# These do not install properly into venv
+# cp -R /usr/lib/python3/dist-packages/libcamera/ ./venv/lib/python3.9/site-packages/
+# cp -R /usr/lib/python3/dist-packages/pykms/ ./venv/lib/python3.9/site-packages/
+
+
 
 # sudo apt install -y python3-pyqt5 python3-opengl
 # sudo apt install -y python3-picamera2
 # sudo apt install libcap-dev
 # sudo apt install -y python3-libcamera
-# cp -R /usr/lib/python3/dist-packages/libcamera/ ./venv/lib/python3.9/site-packages/
-# cp -R /usr/lib/python3/dist-packages/pykms/ ./venv/lib/python3.9/site-packages/
 
