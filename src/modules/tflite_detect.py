@@ -1,9 +1,8 @@
 # ML stuff
-# import time
 from tflite_support.task import core
 from tflite_support.task import processor
 from tflite_support.task import vision
-import utils
+# import utils
 import cv2
 
 
