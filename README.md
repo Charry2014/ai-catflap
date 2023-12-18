@@ -13,7 +13,7 @@ Given this situation we had to do something. Being a pragmatist the first step w
 
 # Getting Started
 ## Background
-There are several projects on the internet that describe getting AI (object detection, to be more precise) to work on the Raspberry Pi. This one is a little different as it describes how to get a product working and installed in situ, doing something useful. There are many stages to this.
+There are several projects on the internet that describe getting AI (object detection, to be more precise) to work on the Raspberry Pi. This one is a little different as it describes how to get a product working, using a custom model, installed in situ, doing something useful. There are many stages to this.
 
 Here, in approximate sequence of necessity, are those stages. As mentioned above, these instructions attempt to describe all the steps necessary to get this project working, including training the model, through to installation and monitoring. If you need more detail, just ask.
 
@@ -49,9 +49,11 @@ The following labels are used - `Cat-alone`, `Cat-with-mouse`, `Cat-body`, `Back
 
 The labels explained -
 * `Cat-alone` - The cat's mouth is clearly visible and there is nothing in it
-* `Cat-with-mouse` - The cat's mouth is clearly visible and there is a mouse there
+* `Cat-with-mouse` - The cat's mouth is clearly visible and there is a mouse, or some other unfortunate creature, there
 * `Cat-body` - Some other part of the cat is visible, not the mouse
 * `Background` - No part of a cat is visible, this is a false trigger and ignored in subsequent processing
+
+There are probably other ways of labelling things - but `Cat-alone` and `Cat-with-mouse` are the essentials. A third label of `Nothing-to-see-here` could have been sufficient to handle all other cases, ie. it may not have been necessary to separate into `Cat-body` as well. If you have the motivation you can play around with this.
 
 ## Image Labelling - Label Studio
 
@@ -70,9 +72,11 @@ label-studio &
 Set up a project, add the labels, and import your images. Follow the instructions.
 
 knowing how to label images is a tricky decision in itself - experience showed that the detections are better when the labels are applied close-cropped to the cat's head for `Cat-alone` like this:
+
 ![image](https://github.com/Charry2014/ai-catflap/assets/58067238/c60d5423-ce57-43c7-9a18-78fa0c2e954a)
 
 For the `Cat-with-mouse`case the labels are centered around the mouse body, but with the cat's eyes in the area
+
 ![image](https://github.com/Charry2014/ai-catflap/assets/58067238/f062568c-6abb-453a-84dd-6b1d0d317cbe)
 
 From these images you will also see that one is taken in natural light, and the other is taken with IR illumination from the Pi camera. You will need sample images of all labels in both lighting conditions. 
@@ -81,7 +85,7 @@ Perhaps an expert in how these models work can clarify or elaborate what exactly
 
 ## Export the Images and Labels
 
-Once you have gathered a few images (the more the better) they need to be exported from Label Studio in the Pascal VOC format, which exports the image and a .xml file that describes the labels and areas. Unfortunately the format produced by Label Studio does not work directly with Google TensorFlow Lite so it is necessary to run a script to do the conversion.
+Once you have gathered a few images (the more the better) they need to be exported from Label Studio in the `Pascal VOC` format, which exports the image and a .xml file that describes the labels and areas. Unfortunately the format produced by Label Studio does not work directly with Google TensorFlow Lite so it is necessary to run a script to do the conversion.
 
 On the Mac Label Studio will default to downloading a .zip to the `/Users/[username]/Downloads` directory. Unpack this into the same place and the script looks there to find a **folder** named in the Label Studio format, which is something like this `project-1-at-2023-09-08-08-26-e3408fe3`.  
 
@@ -93,7 +97,7 @@ project-root# ./bin/buildtflite.sh
 The scripting here is very simple and certainly will not work in many situations simply as-is but the important stuff happens in `src/buildtflite/buildtflite.py` and the associated `requirements.txt` to install the dependencies. The attentive amongst you may notice that the versions specified are far from the newest but at least on macOS this is the newest combination that will work.
 
 ## Train the Model
-The AI in this project is based on [Google's Tensor Flow Lite project](https://www.tensorflow.org/lite) and the smallest `efficientdet_lite0` model. See `src\buildtflite\build_tflite.py` for more details. As mentioned, it is an object detection AI, which for me was a fairly random choice as it just sounded more plausible than the other choice of image classification.
+The AI in this project is based on [Google's Tensor Flow Lite project](https://www.tensorflow.org/lite) and the smallest `efficientdet_lite0` model. See `src/buildtflite/build_tflite.py` for more details. As mentioned, it is an object detection AI, which for me was a fairly random choice as it just sounded more plausible than the other choice of image classification. This is based on the [Google Colab example](https://colab.research.google.com/github/khanhlvg/tflite_raspberry_pi/blob/main/object_detection/Train_custom_model_tutorial.ipynb#scrollTo=Jbl8z9_wBPlr) for detecting the Android figurine. This seemed to break a while back, maybe it got fixed again.
 
 The `./bin/buildtflite.sh` script will create the model for you from the labelled image data, however it is worth drawing attention to the iterative nature of this. Take some images, label them, run them in your target system, have that record the images it classifies, take any images that are incorrectly classified by the model and use them as new training images, repeat.
 
@@ -123,7 +127,9 @@ There is plenty of space inside the housing for the extra wires, and the hole dr
 
 ## Running the AI
 
-Having pulled the sources from GitHub start 
+Having pulled the sources from GitHub start installing the required packages. This is a real pain. It breaks all the time, with more or less every update of any package something stops working. You will notice in `requirements.txt` that *everything* is versioned precisely, for exactly that reason.
+
+The installation script `bin/setup.sh` should install most things you need, and perform a couple of necessary `cp` to finally get everything where it is needed. Once everything is installed the script can be started with the following commands - assuming the camera is at index 0.
 
 ```
 ai-catflap# python3 -m venv venv 
