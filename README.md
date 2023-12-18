@@ -1,4 +1,4 @@
-# catflap
+# ano(The)r AI Catflap
 An AI based mouse detecting cat flap extension for the Sure Flap cat flap. Inspired by a [project by Gerrit Bojen](https://towardsdatascience.com/keep-your-home-mouse-free-with-an-ai-powered-cat-flap-a67c686ce394). It includes collecting data, training a model, deploying to the Pi, monitoring performance.
 
 Describing this as an AI project is a bit like saying that driving a car is just a matter of turning the wheel. There are many skills to master and despite the plentiful YouTube videos showing you ML on the Pi in 10 minutes, this has been a long project with many problems overcome. The machine learning part of this is by far not the most difficult, thanks to the work of those wonderful people at Google - but getting to that point is hard.
@@ -9,38 +9,41 @@ During the COVID pandemic we got two cats as a way of distracting the children f
 
 Our cats are good hunters. We have had many furry critters of all kinds - big and small, small rats, voles, even a baby sand martin. Some have been very much alive - running around the house, eating the cats' food, climbing the curtains, making nests under the sofa - and we have indeed honed our ability to catch and eject these. We are first aware of the presence of a furry guest when we see the cats demonstrating hunting behaviours around the house, then we step in. Worse, however, are the ones alive enough to escape the cat, but then die under the sofa - you can imagine what happens next.
 
-Given this situation we had to do something. Being a pragmatist the first step was to restrict the cat flap to exit-only, but being an engineer I set about providing a better solution to the problem.
+Given this situation we had to do something. Being a pragmatist the first step was to restrict the cat flap to exit-only, but being an engineer this became a challenge.
 
 # Getting Started
 ## Background
+There are several projects on the internet that describe getting AI (object detection, to be more precise) to work on the Raspberry Pi. This one is a little different as it describes how to get a product working and installed in situ, doing something useful. There are many stages to this.
 
-Here, in approximate sequence of necessity, are those stages.
+Here, in approximate sequence of necessity, are those stages. As mentioned above, these instructions attempt to describe all the steps necessary to get this project working, including training the model, through to installation and monitoring. If you need more detail, just ask.
 
 ## Setup a Development Environment
 
-As good as the Pi OS is, it is still more comfortable to develop on a proper desktop system - I use either a Debian Linux (Ubuntu) desktop or macOS for this. Here comes the first gotcha - this is now **cross-platform development**. not every version of Python is easily installable on the Pi, so you will want to use the same version on the desktop as available on the Pi - currently Python 3.9.10.
+As good as the Pi OS is, it is still more comfortable to develop on a proper desktop system - this project is developed on either a Debian Linux (Ubuntu) desktop or macOS for this. Here comes the first gotcha - this is now **cross-platform development**. not every version of Python is easily installable on the Pi, so you will want to use the same version on the desktop as available on the Pi - currently Python 3.9.10.
 
-Then for an IDE - I use [Visual Studio Code](https://code.visualstudio.com/) and the [Remote - SSH](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) plugin is very comfortable for debugging on the Pi. From the command palette you can then Add Remote host and enter `<pi_username>@<your.pi.ipaddress>`. The Pi have SSH keys generated with `ssh-keygen` and then used for enabling [key based SSH login](https://www.geekyhacker.com/2021/02/15/configure-ssh-key-based-authentication-on-raspberry-pi/) to the Pi and for GitHub.
+Then for an IDE - projects for [Visual Studio Code](https://code.visualstudio.com/) are included, and the [Remote - SSH](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) plugin is very comfortable for debugging on the Pi. From the command palette you can then Add Remote host and enter `<pi_username>@<your.pi.ipaddress>`. The Pi have SSH keys generated with `ssh-keygen` and then used for enabling [key based SSH login](https://www.geekyhacker.com/2021/02/15/configure-ssh-key-based-authentication-on-raspberry-pi/) to the Pi and for GitHub.
 
 Oh, and of course, only develop Python inside a virtual environment.
 
 ## Data Collection
 
-Without data there is no machine learning. I set up a Pi with a camera and added some motion detection software to it. This was cobbled together using the Raspberry Pi example for streaming from a camera, and the OpenCV example for motion detection. The code here is so ugly I will share it only when I have cleaned it up. The stream was very useful to be able to monitor the camera live from anywhere on my LAN, very handy for early understanding how the camera siting was working, or not.
+Without data there is no machine learning, step 1 is get recordings of the cats approaching the camera. Set up a Pi with a camera and add some motion detection software to it. This can be cobbled together using the Raspberry Pi example for streaming from a camera, and the OpenCV example for motion detection. The stream was very useful to be able to monitor the camera live from anywhere on the LAN, very handy for early understanding how the camera siting was working, or not. Recording short, 10 second, videos of the cats approaching (and other sources of motion) is very useful for understaning the approach paths of the cats and sources of false triggers.
 
-Credits here go to the [Pi standard streaming example](http://picamera.readthedocs.io/en/latest/recipes2.html#web-streaming) - detailed instructions on [Random Nerd Tutorials](https://randomnerdtutorials.com/video-streaming-with-raspberry-pi-camera/). Note - with the switch to Bullseye the operation of the Pi camera changed completely.
+Credits here go to the [Pi standard streaming example](http://picamera.readthedocs.io/en/latest/recipes2.html#web-streaming) - detailed instructions on [Random Nerd Tutorials](https://randomnerdtutorials.com/video-streaming-with-raspberry-pi-camera/). Note - with the switch to Bullseye the operation of the Pi camera changed completely and these instructions may not work any more.
 
 On to the stream was a client that detected motion and recorded a 10 second video every time motion was detected. From here the first set of images were collected.
 
 You will want to make sure the Pi is mounted in the right place so the camera can see the cats, they need to be approaching the camera for a few seconds so you get some good clean shots of the cat's face, well exposed, and of course you want to make sure the Pi is protected from the weather, and has a wired LAN connection.
 
-## Image Labelling - Preparation
-
 From the videos a series of still images was captured using VLC
 
 * Install [VLC](https://www.videolan.org/vlc/) - follow the instructions on the site
 
-Start up VLC and configure to export JPEG files jpg into the folders above. TensorFlow Lite does not accept PNG so JPG is important! Go to VLC -> `Preferences` -> `Video tab` ->  and set the folder to somewhere sensible, the format to `JPEG`, the prefix to `$N-` so the original video name is retained in the snapshot filename and tick the `sequential numbering` box.
+Start up VLC and configure to export JPEG files jpg into the folders above. TensorFlow Lite does not accept PNG so JPG is important! Go to VLC -> `Preferences` -> `Video tab` ->  and set the folder to somewhere sensible, the format to `JPEG`, the prefix to `$N-` so the original video name is retained in the snapshot filename and tick the `sequential numbering` box. Run the video and make a series of separate images from the video - every time the cat's aspect or position has changed a little, you can take another separate image from the video. This helps quickly build up a bigger data set.
+
+Note that Tensor Flow Lite works only with JPEG images, not PNG.
+
+## Image Labelling - Preparation
 
 The following labels are used - `Cat-alone`, `Cat-with-mouse`, `Cat-body`, `Background` categories. Collect as many images as your patience allows in all categories and add them to the labelling tool.
 
@@ -51,6 +54,8 @@ The labels explained -
 * `Background` - No part of a cat is visible, this is a false trigger and ignored in subsequent processing
 
 ## Image Labelling - Label Studio
+
+This is a very important step, where the Tensor Flow Lite model 'learns' to distinguish one image from another. By taking enough images showing the full variability of the features that are interesting to detect the model can then determine for itself what is in front of the camera. Label Studio is a web based tool that runs on the local machine. Images can be imported and labelled - labelling involves drawing a rectangle around the important features, and telling Label Studio which of the four labels is there.
 
 * Install [Label Studio](https://labelstud.io/) in the Python virtual environment. Command lines using `pip` given below.
 
@@ -88,6 +93,7 @@ project-root# ./bin/buildtflite.sh
 The scripting here is very simple and certainly will not work in many situations simply as-is but the important stuff happens in `src/buildtflite/buildtflite.py` and the associated `requirements.txt` to install the dependencies. The attentive amongst you may notice that the versions specified are far from the newest but at least on macOS this is the newest combination that will work.
 
 ## Train the Model
+The AI in this project is based on [Google's Tensor Flow Lite project](https://www.tensorflow.org/lite) and the smallest `efficientdet_lite0` model. See `src\buildtflite\build_tflite.py` for more details. As mentioned, it is an object detection AI, which for me was a fairly random choice as it just sounded more plausible than the other choice of image classification.
 
 The `./bin/buildtflite.sh` script will create the model for you from the labelled image data, however it is worth drawing attention to the iterative nature of this. Take some images, label them, run them in your target system, have that record the images it classifies, take any images that are incorrectly classified by the model and use them as new training images, repeat.
 
@@ -114,6 +120,17 @@ The choice of wires is arbitrary but choosing the red wire has the advantage tha
 In the photo below you can see the installation. Here a small piece of circuit board is used to hold a socket to short the wire together again if ever it should be necessary to disconnect the Pi. 
 ![20231217_172302](https://github.com/Charry2014/ai-catflap/assets/58067238/9176da86-8b6b-4c17-8cfa-fed9109dbaa7)
 There is plenty of space inside the housing for the extra wires, and the hole drilled for the wires to the relay is in the bottom left. The wires are held in place with a piece of duct tape. Very elegant.
+
+## Running the AI
+
+Having pulled the sources from GitHub start 
+
+```
+ai-catflap# python3 -m venv venv 
+ai-catflap# source venv/bin/activate
+ai-catflap# ./bin/mousetest.sh -s 0
+```
+
 
 ## Monitoring
 As with all installed control devices some monitoring will be needed to detect faults. 
