@@ -97,7 +97,7 @@ project-root# ./bin/buildtflite.sh
 The scripting here is very simple and certainly will not work in many situations simply as-is but the important stuff happens in `src/buildtflite/buildtflite.py` and the associated `requirements.txt` to install the dependencies. The attentive amongst you may notice that the versions specified are far from the newest but at least on macOS this is the newest combination that will work.
 
 ## Train the Model
-The AI in this project is based on [Google's Tensor Flow Lite project](https://www.tensorflow.org/lite) and the smallest `efficientdet_lite0` model. See `src/buildtflite/build_tflite.py` for more details. As mentioned, it is an object detection AI, which for me was a fairly random choice as it just sounded more plausible than the other choice of image classification. This is based on the [Google Colab example](https://colab.research.google.com/github/khanhlvg/tflite_raspberry_pi/blob/main/object_detection/Train_custom_model_tutorial.ipynb#scrollTo=Jbl8z9_wBPlr) for detecting the Android figurine. This seemed to break a while back, maybe it got fixed again.
+The AI in this project is based on [Google's Tensor Flow Lite project](https://www.tensorflow.org/lite) and the smallest `efficientdet_lite0` model. See `src/buildtflite/build_tflite.py` for more details. As mentioned, it is an object detection AI, which for me was a fairly random choice as it just sounded more plausible than the other choice of image classification. This is based on the [Google Colab example](https://colab.research.google.com/github/khanhlvg/tflite_raspberry_pi/blob/main/object_detection/Train_custom_model_tutorial.ipynb#scrollTo=Jbl8z9_wBPlr) for detecting the Android figurine. The Colab example for training a model seemed to break a while back, maybe it got fixed again. While it worked it was really useful - using Google's GPU power to train a model is faster than using your local machine, quite likely, and leaves your computer free for other things.
 
 The `./bin/buildtflite.sh` script will create the model for you from the labelled image data, however it is worth drawing attention to the iterative nature of this. Take some images, label them, run them in your target system, have that record the images it classifies, take any images that are incorrectly classified by the model and use them as new training images, repeat.
 
@@ -127,7 +127,7 @@ There is plenty of space inside the housing for the extra wires, and the hole dr
 
 ## Running the AI
 
-Having pulled the sources from GitHub start installing the required packages. This is a real pain. It breaks all the time, with more or less every update of any package something stops working. You will notice in `requirements.txt` that *everything* is versioned precisely, for exactly that reason.
+Having pulled the sources from GitHub start installing the required packages. This is a real pain. It breaks all the time, with more or less every update of any package something stops working. You will notice in `src/catflap/requirements.txt` that *everything* is versioned precisely, for exactly that reason.
 
 The installation script `bin/setup.sh` should install most things you need, and perform a couple of necessary `cp` to finally get everything where it is needed. Once everything is installed the script can be started with the following commands - assuming the camera is at index 0.
 
@@ -136,7 +136,7 @@ ai-catflap# python3 -m venv venv
 ai-catflap# source venv/bin/activate
 ai-catflap# ./bin/mousetest.sh -s 0
 ```
-
+There are many things that can go wrong, but creating the `log` and `recording` directories should be easy to fix.
 
 ## Monitoring
 As with all installed control devices some monitoring will be needed to detect faults. 
