@@ -149,5 +149,50 @@ As with all installed control devices some monitoring will be needed to detect f
 3. Message Sequence Diagrams generated from the logs - these are not classic message sequence diagrams but the [PlantUML](https://plantuml.com/sequence-diagram) engine is (mis)used to draw an informative diagram of what happens in a log. See `puml/main.py` for more.
 4. Status Webpage - to-do but coming soon - the Pi hosts a webpage that shows the camera stream, the tail of the logfile, and the last evaluation result.
 
-These are future extensions
+These are future extensions.
+
+# How Does It Work
+
+The Python script is essentially a single thread run loop that gets a picture from the camera, detects motion (by comparing this new image to the previous one), and then runs the image through the Tensor Flow Lite model. Simple but sufficient. The image classification and probability are fed into a simple evaluation unit that determines is it certain enough that the cat is alone, or is there a too high chance that there is something else hitching a lift. A state machine determines if the cat flap should be locked or unlocked.
+
+## Command Line Arguments
+
+All options default to sensible values so the script can, in most cases, be run with no arguments. 
+
+* **--stream** - Define an input stream which can be a single JPEG image, a recorded video (MP4), or a Pi camera stream. See the discussion in `imgsrcfactory.py` below.
+* **--trigger** - Sets the rectangle that defines the trigger area in the video for the motion detection. The trigger area coordinates are in the form x,y,w,h.
+* **--model** - Set a path to the .tflite model file
+* **--record_overlays** - Debugging - records images with the Tensor Flow results overlayed on them so it can be seen what the model decided was in the image
+* **--show_trigger** - Debugging - shows the motion detection trigger area in the video stream window
+* **--headless** - Debugging - display no windows, so the model can be run headless (with no display)
+
+
+## Source File Overview
+
+### main.py 
+It all begins here and runs the main loop from here. See the function `motionDetection` for the details. Worthy of note is the extremely hacky `image_classification` function that can be used to re-run the classification on a saved image for testing.
+
+### imgsrcfactory.py
+This is a fairly standard factory class that creates an instance of a class based on the abstract base class `class AbstractImageSource(ABC)`. All these classes are image sources, either a single image or a stream. See the various `imgsrc*.py` files for details. The choice of which class will be the image source is crudely but effectively taken based on the stream name given.
+
+### states.py
+Runs the state machine that locks and unlocks the cat flap. When no motion is detected in front of the camera the state machine is in `Idle` state and the cat flap is unlocked, allowing cats to exit normally. As soon as motion is detected the state machine starts an unlock timer (see `statetimer.py`) and transitions to `MotionLocked` state. Here images are fed through the Tensor Flow Lite model until an evaluation can be made with sufficient confidence (see `evaluation.py`) if there is a cat alone or cat with mouse. 
+
+Once sufficient images have been collected and a suitable confidence has been reached the state machine will transition to either `CatAlone` or `CatWithMouse` state. If the evaluation lands with a cat alone decision then the cat flap is unlocked and kept unlocked until the timeout triggers and returns to `Idle`. If a mouse is seen, then the flap remains locked until the timeout and, you guessed it, a return to `Idle` state.
+
+Simple but effective.
+
+### evaluation.py
+Maintains a list of Stats classes for each possible label - `Cat-alone` and `Cat-with-mouse` and evaluates each for a level of certainty. Again, very simple.
+
+## detections.py
+Convenience classes that mimic classes used by Google but in a minimalist style.
+
+## modules/tflite_detect.py
+Here is the minimal Tensor Flow Lite detection code. It is the Google example stripped down to the absolute minimum.
+
+## modules/base_logger.py
+A minimal hacky logging wrapper to log both to the console and a file. Generally speaking, logs are awesome in a project like this, and tools like PlantUML (discussed above) and [Grafana](https://grafana.com/) are just magic for making logs actually mean something.
+
+
 
