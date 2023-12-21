@@ -76,11 +76,11 @@ knowing how to label images is a tricky decision in itself - experience showed t
 
 ![image](https://github.com/Charry2014/ai-catflap/assets/58067238/c60d5423-ce57-43c7-9a18-78fa0c2e954a)
 
-For the `Cat-with-mouse`case the labels are centered around the mouse body, but with the cat's eyes in the area
+For the `Cat-with-mouse`case the labels are centered around the mouse body, but with the cat's eyes in the area. 
 
 ![image](https://github.com/Charry2014/ai-catflap/assets/58067238/f062568c-6abb-453a-84dd-6b1d0d317cbe)
 
-From these images you will also see that one is taken in natural light, and the other is taken with IR illumination from the Pi camera. You will need sample images of all labels in both lighting conditions. 
+Perhaps it would also be better to include the entire cat's head as in the `Cat-alone` example above, but this would be something for experimentation. Generally, all these models like `efficientdet_lite0` are pre-trained on vast data sets and to know for sure which is better in any given circumstance is hard. One universal truth remains - more data is always better. The sample images must cover as many environmental and edge cases as possible - natural light, IR illumination from the Pi camera, each cat you have, sunlight, shade and whatever else can happen. A colleague once told a story of their cat coming home with a snake. You get the idea. You will need sample images of all labels in all conditions. 
 
 Perhaps an expert in how these models work can clarify or elaborate what exactly would work best here, this is complex and a field of study in its own right. For now this is OK.
 
@@ -142,14 +142,17 @@ ai-catflap# ./bin/mousetest.sh -s 0
 There are many things that can go wrong, but creating the `log` and `recording` directories should be easy to fix.
 
 ## Monitoring
-As with all installed control devices some monitoring will be needed to detect faults. 
+As with all installed control devices some monitoring will be needed to detect faults. This is a manual effort, with some automation possible.
 
 1. Logging - all events from the control code are logged. These logs are quite noisy but detailed and could be uploaded to a logging service such as Grafana for better visibility.
-2. Recordings - images are recorded of the cats comings and goings, with their classifications from the Tensor Flow Lite model
+2. Recordings - images are recorded of the cats comings and goings, with their classifications from the Tensor Flow Lite model. See discussion below.
 3. Message Sequence Diagrams generated from the logs - these are not classic message sequence diagrams but the [PlantUML](https://plantuml.com/sequence-diagram) engine is (mis)used to draw an informative diagram of what happens in a log. See `puml/main.py` for more.
-4. Status Webpage - to-do but coming soon - the Pi hosts a webpage that shows the camera stream, the tail of the logfile, and the last evaluation result.
+4. Status Webpage - to-do but coming soon - the Pi hosts a webpage that shows the camera stream, the tail of the logfile, and the last evaluation result. This can then be hosted in, for example, a [Home Assistant](https://www.home-assistant.io/) dashboard, for example.
 
 These are future extensions.
+
+### Recorded Images
+In its normal operation the Python scripting will record all images that are classified into the `recording` directory. These can then be reviewed for false detections and a new model trained. This can be done by mapping the directory onto an NFS share visible over the LAN or by using VNC to connect to the Pi and view directly in the host, or likely many other ways. Either way, these recorded images are a good source of new training data to improve the model.
 
 # How Does It Work
 
