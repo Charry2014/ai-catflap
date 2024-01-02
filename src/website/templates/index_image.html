@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Stream</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        #imageContainer {
+            text-align: center;
+        }
+
+        img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+</head>
+<body>
+    <div id="imageContainer"></div>
+
+    <script>
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+        console.log('Socket ', document.domain, ' port ', location.port)
+
+        // Event handler for displaying the received image
+        socket.on('display_image', function(data) {
+            // console.log('Received image data:', data.image);
+            // Display the image in the imageContainer div
+            $('#imageContainer').html('<img src="data:image/png;base64,' + data.image + '">');
+        });
+
+        socket.on('connect', function() {
+            console.log('Connected to server');
+        });
+
+        socket.on('disconnect', function() {
+            console.log('Disconnected from server');
+        });
+
+    </script>
+</body>
+</html>

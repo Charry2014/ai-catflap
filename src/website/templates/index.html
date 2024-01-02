@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CatCam Overview</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+        }
+
+        .column {
+            flex: 1;
+            height: 100vh; /* 100% of the viewport height */
+            border: 1px solid #ccc; /* Optional: Add a border for separation */
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Optional: Style the content inside the columns */
+        .column:nth-child(odd) {
+            background-color: #f4f4f4; /* Optional: Add background color to alternate columns */
+        }
+
+        /* Optional: Add some padding to the content inside the columns */
+        .content {
+            padding: 20px;
+            flex: 1; /* Make the content area flexible to take remaining space */
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%; /* Allow the iframe to take the full height of the content area */
+            border: none;
+            display: block;
+            overflow: hidden; /* Hide any scrollbars inside the iframe */
+        }
+
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+</head>
+<body>
+    <div class="column">
+        <div class="content">
+            <!-- Content for the first column goes here -->
+            <h2>Log</h2>
+            <iframe src="http://localhost:5000/log" title="Log"></iframe>
+        </div>
+    </div>
+    <div class="column">
+        <div class="content">
+            <!-- Content for the second column goes here -->
+            <h2>Stream</h2>
+            <iframe src="http://localhost:5000/stream" title="Stream"></iframe>
+        </div>
+    </div>
+</body>
+</html>
