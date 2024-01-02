@@ -29,8 +29,8 @@ pythonpathadd() {
     fi
 }
 # export PYTHONPATH="$PYTHONPATH:./modules:./modules/tflite"
-pythonpathadd "./modules"
-pythonpathadd "./modules/tflite"
+pythonpathadd "./src/modules"
+pythonpathadd "./src/modules/tflite"
 
 # Create necessary directories
 if [ ! -d "$RECORDINGS_DIR" ]; then
@@ -49,7 +49,7 @@ fi
 
 # Always auto-restart the script if it should crash
 run_command() {
-python3 mousetest/motiondetect.py --stream $STREAM \
+python3 ./src/catflap/main.py --stream $STREAM \
                 --record_path $RECORDINGS_DIR              \
                 --trigger 210,180,250,280                               \
                 --model $BASE_PATH/$MODEL
