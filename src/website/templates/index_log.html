@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask Update Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        #elementList {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        #elementList li {
+            margin-bottom: 10px;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+</head>
+<body>
+    <ul id="elementList"></ul>
+    <script>
+        // Connect to the SocketIO server - localhost port 5000
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+        
+        // Update the list when a new element is received
+        socket.on('new_element', function(data) {
+            // Split log_data into lines and display only the last 20 lines
+            var lines = data.element.split('\n');
+            var last20Lines = lines.slice(-20);
+
+            // Clear the list
+            $('#elementList').empty();
+
+            // Add the last 20 lines to the list
+            last20Lines.forEach(function(line) {
+                $('#elementList').prepend('<li>' + line + '</li>'); //
+            });
+        });
+
+        // Update the list every second
+        setInterval(function() {
+            socket.emit('update_list');
+        }, 1000);
+    </script>
+</body>
+</html>
