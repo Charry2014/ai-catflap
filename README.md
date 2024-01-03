@@ -147,9 +147,34 @@ As with all installed control devices some monitoring will be needed to detect f
 1. Logging - all events from the control code are logged. These logs are quite noisy but detailed and could be uploaded to a logging service such as Grafana for better visibility.
 2. Recordings - images are recorded of the cats comings and goings, with their classifications from the Tensor Flow Lite model. See discussion below.
 3. Message Sequence Diagrams generated from the logs - these are not classic message sequence diagrams but the [PlantUML](https://plantuml.com/sequence-diagram) engine is (mis)used to draw an informative diagram of what happens in a log. See `puml/main.py` for more.
-4. Status Webpage - to-do but coming soon - the Pi hosts a webpage that shows the camera stream, the tail of the logfile, and the last evaluation result. This can then be hosted in, for example, a [Home Assistant](https://www.home-assistant.io/) dashboard, for example.
+4. Status Webpage - See below
 
-These are future extensions.
+### Overview Website
+The Pi can host a small web server that gives an overview of what is happening on the cat flap. This is not secure and intended for use only in your LAN, for example in a [Home Assistant](https://www.home-assistant.io/) dashboard. The webpage shows the camera stream, the tail of the logfile, and the last evaluation result and runs in a Docker container.
+
+When the Docker container running the server is active the site will be available on [http://[your.pi.ip.address]:5000](http://[your.pi.ip.address]:5000)
+
+Here is a short Docker 1.01 helper to get the site started. If you didn't install Docker on your Pi (Bullseye) yet -
+```
+sudo apt update && sudo apt install -y docker.io docker-compose
+```
+
+Then to build the Docker image and run the server -
+```
+ai-catflap # cd src/website
+ai-catflap/src/website # sudo docker build -t webserver .
+ai-catflap/src/website # sudo docker run -d -it -p 5000:5000 --rm --name web --mount type=bind,source=[/full/path/to/log/dir]/log,target=/log,readonly webserver
+```
+Note - remember to change `[/full/path/to/log/dir]` to the full path to your logs directory. This will be something like `/home/pi/projects/catflap2/ai-catflap/log`.
+
+Demystify the Docker command - What this does is run the container as a daemon in the background `-d`; create a STDIN terminal to access the container useful for debugging `-it`; exposing port 5000 in the container as port 5000 on the host `-p 5000:5000`; automatically deleting the container if it stops `--rm`; giving the running instance the name `--name web`; mount the local logs directory into the `/log` location in the container `--mount type=bind,source=[/full/path/to/log/dir]/log,target=/log,readonly`.
+
+Some other useful Docker commands -
+* Stop the web server - `sudo docker stop web`
+* For debugging get the logs from the container - `sudo docker logs web`. Note that you must remove the `--rm` command line option from the `docker run` command to prevent the removal of the container on stop.
+* Clean up/delete a container that is stopped `sudo docker container rm web`.
+
+
 
 ### Recorded Images
 In its normal operation the Python scripting will record all images that are classified into the `recording` directory. These can then be reviewed for false detections and a new model trained. This can be done by mapping the directory onto an NFS share visible over the LAN or by using VNC to connect to the Pi and view directly in the host, or likely many other ways. Either way, these recorded images are a good source of new training data to improve the model.
