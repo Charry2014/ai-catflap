@@ -27,7 +27,7 @@
 
     <script>
         var socket = io.connect('http://' + document.domain + ':' + location.port);
-        console.log('Socket ', document.domain, ' port ', location.port)
+        console.log('Socket stream ', document.domain, ' port ', location.port)
 
         // Event handler for displaying the received image
         socket.on('display_image', function(data) {
