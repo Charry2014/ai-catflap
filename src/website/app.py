@@ -76,10 +76,11 @@ if __name__ == '__main__':
     # and in the Docker container it is in another (the /log location actually)
     from os import access, R_OK
     from os.path import isfile
-    locations = ['/log/catcam.log', './example.log']
+    locations = ['/log/catflap.log', './example.log']
     for l in locations:
         if isfile(l) and access(l, R_OK):
             log_file_name = l
+            break
     assert log_file_name != None, print("Error: Could not find a log file to tail")
 
     # Go, go, go!

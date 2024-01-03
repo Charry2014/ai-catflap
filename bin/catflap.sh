@@ -3,19 +3,21 @@
 # To run from the current directory
 # To use the streaming output
 # Typical command line to run live from the camera would be:
-# (venv) pi@catcampi:~/projects/catflap $ ./mousetest.sh -s 0 
+# (venv) pi@catcampi:~/projects/catflap $ ./mousetest.sh -s 0 -w http://10.0.0.38:5000
 
 BASE_PATH="$PWD"
 STREAM=http://10.0.0.195:8000/stream.mjpg
 MODEL=test/cats.tflite
+WEBSITE=http://10.0.0.38:5000
 
 # Process command line options
-while getopts p:s:m: flag
+while getopts p:s:m:w: flag
 do
     case "${flag}" in
         p) BASE_PATH=${OPTARG};;
         s) STREAM=${OPTARG};;
         m) MODEL=${OPTARG};;
+        w) WEBSITE=${OPTARG};;
     esac
 done
 
@@ -52,7 +54,8 @@ run_command() {
 python3 ./src/catflap/main.py --stream $STREAM \
                 --record_path $RECORDINGS_DIR              \
                 --trigger 210,180,250,280                               \
-                --model $BASE_PATH/$MODEL
+                --model $BASE_PATH/$MODEL \
+                --web $WEBSITE
 }
 
 until run_command; do

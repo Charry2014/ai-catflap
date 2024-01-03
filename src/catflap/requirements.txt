@@ -7,6 +7,14 @@ python-statemachine==2.0.0
 RPi.GPIO
 picamera2==0.3.12
 
+# For the web server client
+# socketio should not be necessary, but somehow I had trouble with this. 
+# Seemed necessary to install it and then
+# pip install --upgrade --force-reinstall python-socketio
+# socketio
+python-socketio
+requests
+
 # Don't forget on the Pi
 # pip install RPi.GPIO
 # picamera2

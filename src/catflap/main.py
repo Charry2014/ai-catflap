@@ -16,6 +16,15 @@ from states import CatFlapFSM
 from imgsrcfactory import ImageSourceFactory
 
 
+import base64
+import socketio
+
+# Shut off noisy messages -
+# connectionpool(292):DEBUG Resetting dropped connection: 10.0.0.38
+# connectionpool(546):DEBUG http://10.0.0.38:5000 "POST /socket.io/?transport=polling&EIO=4&sid=4BN7BycU05USNayrAAGE HTTP/1.1" 200 None
+import logging
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+
 # Visualization parameters
 row_size = 20  # pixels
 left_margin = 24  # pixels
@@ -52,6 +61,17 @@ def motionDetection(img_src, state_machine:CatFlapFSM, args):
     # Set the movement target area, mark it with a rectangle
     bc, br, bw, bh = [int(x) for x in args.trigger.split(',')]
 
+    sio = None
+    # Connect to the Flask server using socketio
+    if hasattr(args, 'web'):
+        logger.info(f"Connecting to web server at {args.web}")
+        sio = socketio.Client()
+        try:
+            sio.connect(args.web)
+        except:
+            logger.error(f"Connection to {args.web} failed")
+            delattr(args, 'web')
+
     while True:
         movement = False
 
@@ -79,6 +99,15 @@ def motionDetection(img_src, state_machine:CatFlapFSM, args):
             cv.imshow("Video frame 1", frame1)
             cv.waitKey(30)
  
+        if hasattr(args, 'web'):
+            # Convert the frame to JPEG format
+            _, buffer = cv.imencode('.jpg', frame1)
+            jpeg_bytes = base64.b64encode(buffer.tobytes()).decode('utf-8')
+            # Send the frame to the server
+            sio.emit('image_data', {'image': jpeg_bytes})
+            time.sleep(1)
+
+
         # Check if enough movement is found
         for contour in contours:
             area = cv.contourArea(contour)
@@ -132,6 +161,7 @@ def motionDetection(img_src, state_machine:CatFlapFSM, args):
  
     cap.release()
     cv.destroyAllWindows()
+    sio.disconnect()
 
 def image_classification(args):
     '''Take an image and run the classification of it
@@ -192,6 +222,12 @@ def main():
         '--headless', 
         help="Run headless and show no video windows",
         action='store_true', 
+        required=False)
+    parser.add_argument(
+        '--web', 
+        help="Define the monitoring website address",
+        action='store', 
+        type=str, 
         required=False)
     #  ML Parameters
     parser.add_argument(
