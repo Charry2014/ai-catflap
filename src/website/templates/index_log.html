@@ -26,7 +26,10 @@
     <ul id="elementList"></ul>
     <script>
         // Connect to the SocketIO server - localhost port 5000
-        var socket = io.connect('http://' + document.domain + ':' + location.port);
+        var serverHost = window.location.hostname;
+        var serverPort = window.location.port || (window.location.protocol === 'https:' ? 443 : 80);
+        console.log('Connecting to server http://' + serverHost + ':' + serverPort);
+        var socket = io.connect('http://' + serverHost + ':' + serverPort);
         
         // Update the list when a new element is received
         socket.on('new_element', function(data) {
