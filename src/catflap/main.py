@@ -45,7 +45,7 @@ def create_overlays(frame1, detections):
     return frame1
 
 
-def make_outfile_name(record_path, label, prob):
+def make_outfile_name(record_path, label, prob=1):
     datestr = datetime.now().strftime("%Y%m%d-%H%M%S.%f")[:-3]
     prob = int(prob * 100)
     outfile = path.join(record_path, f"{label}-{str(prob)}-{datestr}_catcam.jpg")
@@ -105,13 +105,20 @@ def motionDetection(img_src, state_machine:CatFlapFSM, args):
             jpeg_bytes = base64.b64encode(buffer.tobytes()).decode('utf-8')
             # Send the frame to the server
             sio.emit('image_data', {'image': jpeg_bytes})
-            time.sleep(1)
-
 
         # Check if enough movement is found
         for contour in contours:
             area = cv.contourArea(contour)
             if area > 1200:
+                logger.debug(f"Triggered on movement area {area}")
+                # Glitch detection, or other false trigger that is too large to be realistic
+                if area > (65000):
+                    # The newly read image is massively different from the previous
+                    logger.error(f"Glitch detection - filtering out image delta area {area}")
+                    outfile = make_outfile_name(args.record_path, "glitch")
+                    cv.imwrite(outfile, frame2)
+                    cv.waitKey(300)
+                    break
                 movement = True
                 break
 
