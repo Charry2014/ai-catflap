@@ -12,7 +12,7 @@ class AbstractImageSource(ABC):
 
     @property
     def isopen(self) -> bool:
-        return self._isopen()
+        return self._isopen
     
     @staticmethod
     @abstractmethod
