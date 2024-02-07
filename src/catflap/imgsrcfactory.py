@@ -5,8 +5,8 @@ HOST_OS = os.uname().sysname
 from imgsrcmp4 import ImageSourceMP4Video
 from imgsrcimg import ImageSourceSingleImage
 if HOST_OS == "Darwin":
-    # ie. macOS
-    pass
+    # ie. Desktop, Intel
+    from imgsrcwebcam import ImageSourceWebCam
 else:
     # ie. Raspberry Pi
     from imgsrcpicam import ImageSourcePiCamera
@@ -16,7 +16,9 @@ else:
 class ImageSourceFactory():
     # Build the list of image sources, simple & hacky but sufficient
     __classlist__ = [ImageSourceMP4Video, ImageSourceSingleImage]
-    if HOST_OS == "Darwin": pass
+    if HOST_OS == "Darwin":
+        # On the desktop add the Web Cam class
+        __classlist__.append(ImageSourceWebCam)
     else:
         # On the Pi add the Pi Camera class
         __classlist__.append(ImageSourcePiCamera)
