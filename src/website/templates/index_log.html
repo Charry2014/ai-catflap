@@ -27,6 +27,7 @@
     <script>
         // Connect to the SocketIO server - localhost port 5000
         var socket = io.connect('http://' + document.domain + ':' + location.port);
+        console.log('Socket log ', document.domain, ' port ', location.port)
         
         // Update the list when a new element is received
         socket.on('new_element', function(data) {

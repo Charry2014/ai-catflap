@@ -48,15 +48,26 @@
         <div class="content">
             <!-- Content for the first column goes here -->
             <h2>Log</h2>
-            <iframe src="http://localhost:5000/log" title="Log"></iframe>
+            <iframe id="logIframe" title="Log"></iframe>
         </div>
     </div>
     <div class="column">
         <div class="content">
-            <!-- Content for the second column goes here -->
             <h2>Stream</h2>
-            <iframe src="http://localhost:5000/stream" title="Stream"></iframe>
+            <iframe id="streamIframe" title="Stream"></iframe>
         </div>
     </div>
+    <script>
+        // Dynamically get the server's host and port based on the current URL
+        var serverHost = window.location.hostname;
+        var serverPort = window.location.port || (window.location.protocol === 'https:' ? 443 : 80);
+
+        // Set the iframe src attribute with the serverHost
+        var iframe = document.getElementById('streamIframe');
+        iframe.src = 'http://' + serverHost + ':' + serverPort + '/stream';
+        iframe = document.getElementById('logIframe');
+        iframe.src = 'http://' + serverHost + ':' + serverPort + '/log';
+    </script>
+
 </body>
 </html>
