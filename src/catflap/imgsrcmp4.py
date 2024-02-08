@@ -19,7 +19,7 @@ class ImageSourceMP4Video(AbstractImageSource):
         return retval
 
 
-    def open_image_source(self) -> int:
+    def open(self) -> int:
         '''Opens an image source from the provided arguments 
         Returns 0 for success, or anything else for an error'''
         if os.path.isfile(self.source) == False:
@@ -33,7 +33,7 @@ class ImageSourceMP4Video(AbstractImageSource):
         self._isopen = True
         return 0
 
-    def close_image_source(self) -> int:
+    def close(self) -> int:
         '''Closes an image source
         Returns 0 for success, or anything else for an error'''
         self.cap.release()
@@ -56,11 +56,11 @@ def main():
     logger.info("Hello world")
     test = ImageSourceMP4Video(source=data)
 
-    test.open_image_source()
+    test.open()
     while True:
         img = test.get_image()
         if type(img) == type(None):
-            test.close_image_source()
+            test.close()
             break
         cv.imshow("image", img)
         cv.waitKey(50)

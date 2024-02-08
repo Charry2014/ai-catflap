@@ -23,13 +23,13 @@ class ImageSourceWebCam(AbstractImageSource):
             retval = True
         return retval
 
-    def open_image_source(self) -> int:
+    def open(self) -> int:
         '''Opens an image source from the provided arguments 
         Returns 0 for success, or anything else for an error'''
         self._isopen = True
         return 0
 
-    def close_image_source(self) -> int:
+    def close(self) -> int:
         '''Closes an image source
         Returns 0 for success, or anything else for an error'''
         self._isopen = False

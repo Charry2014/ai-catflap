@@ -48,12 +48,12 @@ data = "~/projects/catflap/data/incoming/Cat-with-mouse/20221010/Training/vlcsna
 def main():
     logger.info("Hello world")
 
-    test = ImageSourceFactory.create_source(source=data)
-    test.open_image_source()
+    imgsrc = ImageSourceFactory.create(source=data)
+    imgsrc.open()
     while True:
-        img = test.get_image()
+        img = imgsrc.get_image()
         if type(img) == type(None):
-            test.close_image_source()
+            imgsrc.close()
             break
         cv.imshow("image", img)
         cv.waitKey(50)

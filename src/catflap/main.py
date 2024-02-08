@@ -52,6 +52,14 @@ def make_outfile_name(record_path, label, prob=1):
     return outfile
 
 
+def cat_flap_control(args):
+    img_src = ImageSourceFactory.create_source(args.stream)
+    img_src.open_image_source()
+
+    state_machine = CatFlapFSM()
+    tflite = TFLiteDetect(args.model, args.enable_edgetpu, args.num_threads)
+
+
 def motionDetection(img_src, state_machine:CatFlapFSM, args):
     frame1 = img_src.get_image()
     frame2 = img_src.get_image()
@@ -283,20 +291,23 @@ def main():
         image_classification(args)
         return
 
-    state_machine = CatFlapFSM()
+    # state_machine = CatFlapFSM()
+    exit_code = 0
     try:
-        logger.info("Started motion detection")
-        img_src = ImageSourceFactory.create_source(args.stream)
-        img_src.open_image_source()
-        motionDetection(img_src, state_machine, args)
+        logger.info("Started cat flap control")
+        cat_flap_control(args)
+        # img_src = ImageSourceFactory.create_source(args.stream)
+        # img_src.open_image_source()
+        #motionDetection(img_src, state_machine, args)
     except Exception as e:
         logger.exception(f"Caught exception {e.__class__} - {e}")
         time.sleep(2)
+        exit_code = 1
     finally:
         # Goodbye, world
         cv.destroyAllWindows()
-        state_machine.exit()
-        sys.exit(1)
+        # state_machine.exit()
+        sys.exit(exit_code)
     
 
 if __name__ == "__main__":
