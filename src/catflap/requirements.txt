@@ -2,10 +2,10 @@ argparse
 numpy==1.24.1  # To ensure compatibility with OpenCV on Raspberry Pi.
 opencv-python~=4.5.3.56
 tflite-support==0.4.3
-tflite-runtime==2.11.0
+# tflite-runtime==2.11.0
 python-statemachine==2.0.0
-RPi.GPIO
-picamera2==0.3.12
+#RPi.GPIO
+#picamera2==0.3.12
 
 # For the web server client
 # socketio should not be necessary, but somehow I had trouble with this. 
