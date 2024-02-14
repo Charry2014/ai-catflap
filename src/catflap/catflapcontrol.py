@@ -44,7 +44,7 @@ class CatFlapControl():
         state = GPIO.input(GPIO_PIN)
         return state
 
-    def cat_flap_lock(self) -> None:
+    def lock(self) -> None:
         # if self._locked == True and self.gpio_state == 1:
         #     return
         self._locked = True
@@ -54,7 +54,7 @@ class CatFlapControl():
         else:
             GPIO.output(GPIO_PIN, GPIO.HIGH)
 
-    def cat_flap_unlock(self) -> None:
+    def unlock(self) -> None:
         # if self._locked == False and self.gpio_state == 0:
         #     return
         self._locked = False
