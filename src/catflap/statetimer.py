@@ -18,21 +18,21 @@ class StateTimer():
         self._running = False
         self._callback(args=None)
 
-    def timer_start(self) -> None:
+    def start(self) -> None:
         '''Starts the timer if it is not running'''
         if self._running == False:
             logger.info(f"{self.__class__.__name__} starting timer.")
             self._timer.start()
             self._running = True
 
-    def timer_restart(self) -> None:
+    def restart(self) -> None:
         '''Start the timeout again from the beginning'''
         logger.info(f"{self.__class__.__name__} timer restarted.")
         if self._running == True:
             self._timer.cancel()
         self._timer.start()
     
-    def timer_cancel(self):
+    def cancel(self):
         logger.info(f"{self.__class__.__name__} timer canceled.")
         self._running = False
         self._timer.cancel()
