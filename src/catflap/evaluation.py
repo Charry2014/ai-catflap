@@ -23,7 +23,7 @@ class Stats:
         self._triggered_result = None
 
     def __str__(self):
-        return f"{self.__class__.__name__} {self._name} ma:{self._moving_average:.2f} min:{self._min:.2f} max:{self._max:.2f} cnt:{self._count} dta:{self._delta:.2f}"
+        return f"{self.__class__.__name__} for {self._name} m-avg:{self._moving_average:.2f} min:{self._min:.2f} max:{self._max:.2f} count:{self._count} delta:{self._delta:.2f}"
     
     @property
     def max(self) -> float:
@@ -61,7 +61,7 @@ class Stats:
         if self._moving_average >= self.average_threshold and self._count >= self.min_result_count:
             self._status = self._triggered_result
 
-        logger.debug(f"{__class__.__name__} {self._name} pushed value: {value:.2f} == {self} result {self._status}")
+        logger.debug(f"{__class__.__name__} {self._name} pushed value: {value:.2f} == {self} result {self._status.name}")
         return self._status
 
 
@@ -132,14 +132,6 @@ class Evaluation():
     def result(self) -> int:
         '''The result of the determination'''
         return self._result
-
-
-class CatDetection(int, Enum):
-    CAT_ALONE = 0
-    CAT_WITH_MOUSE = 1
-    BACKGROUND = 2
-    CAT_BODY = 3
-    UNDECIDED = 4
 
 
 def main():
