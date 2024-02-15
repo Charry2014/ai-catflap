@@ -41,7 +41,7 @@ class MovementLockedState(TState):
 
         # Record or show the detection results
         if data.headless == False:
-            new_image = np.zeros_like(event.payload)
+            new_image = event.payload.copy()
             cv.imshow(MovementLockedState.window_name, data.tflite.create_overlays(new_image))
             cv.waitKey(30)
         # TODO - Record an image with the overlays

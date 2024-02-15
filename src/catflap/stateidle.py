@@ -34,7 +34,7 @@ class IdleState(TState):
         contours, _ = cv.findContours(dilated, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
 
         if data.headless == False:
-            new_image = np.zeros_like(frame2)
+            new_image = frame2.copy()
             cv.drawContours(new_image, contours, -1, (0, 255, 0), 2)
             cv.imshow(IdleState.window_name, new_image)
             cv.waitKey(30)
