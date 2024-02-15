@@ -61,7 +61,7 @@ class Stats:
         if self._moving_average >= self.average_threshold and self._count >= self.min_result_count:
             self._status = self._triggered_result
 
-        logger.debug(f"{__class__.__name__} {self._name} pushed value: {value:.2f} == {self} result {self._status.name}")
+        logger.debug(f"{__class__.__name__} pushed value: {self._name},{value:.2f} == {self} result {self._status.name}")
         return self._status
 
 
@@ -118,15 +118,13 @@ class Evaluation():
 
     def add_record(self, label:str, value:float) -> int:
         '''Add the record to the statistics'''
-        retval = None
         if self._stats[label] == None:
             # this is a label that is not used in this evaluation
+            # will return the default value UNDECIDED
             pass
         else:
-            
-            retval = self._stats[label].push(value)
-        self._result = retval
-        return retval
+            self._result = self._stats[label].push(value)
+        return self._result
 
     @property
     def result(self) -> int:
