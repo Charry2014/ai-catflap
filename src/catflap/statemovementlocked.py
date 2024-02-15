@@ -42,7 +42,7 @@ class MovementLockedState(TState):
         # Record or show the detection results
         if data.headless == False:
             new_image = event.payload.copy()
-            cv.imshow(MovementLockedState.window_name, data.tflite.create_overlays(new_image))
+            cv.imshow(data.window_name, data.tflite.create_overlays(new_image))
             cv.waitKey(30)
         # TODO - Record an image with the overlays
         # if(data.args.record_overlays == True):
@@ -59,8 +59,7 @@ class MovementLockedState(TState):
         '''Start the timeout timer on the transition out of idleState only'''
         # self.timeout_timer = StateTimer(self._timeout_handle)
         # self.timeout_timer.timer_start()
-        if data.headless == False:
-            cv.destroyWindow(MovementLocked.window_name)
+        pass
 
 
 

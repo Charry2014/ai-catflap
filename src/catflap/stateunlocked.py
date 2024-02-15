@@ -31,7 +31,7 @@ class UnlockedState(TState):
         # Record or show the detection results
         if data.headless == False:
             new_image = event.payload.copy()
-            cv.imshow(UnlockedState.window_name, data.tflite.create_overlays(new_image))
+            cv.imshow(data.window_name, data.tflite.create_overlays(new_image))
             cv.waitKey(30)
 
         return retval

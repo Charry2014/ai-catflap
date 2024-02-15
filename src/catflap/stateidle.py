@@ -13,6 +13,14 @@ class IdleState(TState):
     def __init__(self, *args, **kwargs) -> None:
         super(IdleState, self).__init__(*args, **kwargs)
 
+    def on_enter_state(self, event:Event, data:GlobalData) -> None:
+        '''When we return to idle we unlock the cat flap, so cats can exit from the inside, and
+        reset the evaluation class ready for the next event sequence'''
+        # data.cat_flap_control.unlock()
+        # logger.info(f"PUML idleState --> flapControl: cat-flap-unlock")
+        # data.evaluation = None
+        pass
+        
     def run(self, event:Event, data:GlobalData) -> States:
         '''
         Detect movement
@@ -34,9 +42,9 @@ class IdleState(TState):
         contours, _ = cv.findContours(dilated, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
 
         if data.headless == False:
-            new_image = frame2.copy()
+            new_image = cp2.copy()
             cv.drawContours(new_image, contours, -1, (0, 255, 0), 2)
-            cv.imshow(IdleState.window_name, new_image)
+            cv.imshow(data.window_name, new_image)
             cv.waitKey(30)
 
         # Check if enough movement is found
@@ -52,17 +60,8 @@ class IdleState(TState):
         
         return retval
 
-    def on_enter_state(self, event:Event, data:GlobalData) -> None:
-        '''When we return to idle we unlock the cat flap, so cats can exit from the inside, and
-        reset the evaluation class ready for the next event sequence'''
-        # data.cat_flap_control.unlock()
-        # logger.info(f"PUML idleState --> flapControl: cat-flap-unlock")
-        # data.evaluation = None
-        pass
-        
     def on_exit_state(self, event:Event, data:GlobalData) -> None:
         '''Leaving idle state'''
-        if data.headless == False:
-            cv.destroyWindow(IdleState.window_name)
+        pass
 
 

@@ -122,6 +122,10 @@ class GlobalData():
         return [e.payload for e in list(self._event_queue)[(-1 * count):]]
 
 
+    @property
+    def window_name(self) -> str:
+        return "Cat flap image"
+
 
 class TState(State, ABC):
     @abstractmethod
