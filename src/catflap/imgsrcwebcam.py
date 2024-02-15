@@ -1,6 +1,8 @@
 from abstractimagesource import AbstractImageSource
 from array import array
 import cv2
+import time
+import sys
 
 from base_logger import logger
 
@@ -10,9 +12,22 @@ class ImageSourceWebCam(AbstractImageSource):
 
         frameWidth = 640
         frameHeight = 480
-        self.cap = cv2.VideoCapture(int(kwargs["source"]))
-        self.cap.set(3, frameWidth)
-        self.cap.set(4, frameHeight)
+
+        success = False
+        max_retries = 10
+        while success == False:
+            self.cap = cv2.VideoCapture(int(kwargs["source"]))
+            self.cap.set(3, frameWidth)
+            self.cap.set(4, frameHeight)
+            success, frame = self.cap.read()
+            if type(frame) == type(None) or success == False:
+                max_retries -= 1
+                if max_retries == 0:
+                    logger.error('Failed to open web cam image source.')
+                    sys.exit(1)
+                self.cap.release()
+                time.sleep(0.2)
+
         # self.cap.set(10,150)
 
     @staticmethod
@@ -33,6 +48,7 @@ class ImageSourceWebCam(AbstractImageSource):
         '''Closes an image source
         Returns 0 for success, or anything else for an error'''
         self._isopen = False
+        self.cap.release()
         return 0
 
     def get_image(self) -> array:
