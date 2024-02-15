@@ -1,207 +1,46 @@
 
 from statemachine import StateMachine, State
-from enum import Enum
 import sys
 from base_logger import logger
-from detections import TFLDetections, TFLDetection, BoundingRect
-from evaluation import Evaluation, CatDetection
+# from detections import TFLDetections, TFLDetection, BoundingRect
+from evaluation import Evaluation
 from catflapcontrol import CatFlapControl
 from statetimer import StateTimer
 
-class States(int, Enum):
-    IDLE = 1
-    TRIGGERING = 2
-    UNLOCKED = 3
-    MOVEMENT_LOCKED = 4
-    MOUSE_LOCKED = 5
+from statetypes import TState, GlobalData, Event, States
+from stateidle import IdleState
+from statetriggering import TriggeringState
+from statemovementlocked import MovementLockedState
+from statemouselocked import MouseLockedState
+from stateunlocked import UnlockedState
 
-
-from abc import ABC, abstractmethod
-
-
-class Event():
-    '''Basic event wrapper class so state machine stays more generic'''
-    def __init__(self, d):
-        self._label = d.label
-        pass
-
-    def __str__(self) -> str:
-        return self._label
-
-    @property
-    def detail(self):
-        return self._label
-    pass
-
-class GlobalData():
-    def __init__(self) -> None:
-        self.cat_flap_control = CatFlapControl()
-        self.evaluation = None
-        self.timeout_timer = None
-
-
-class TState(State, ABC):
-    @abstractmethod
-    def run(self, event:Event) -> States:
-        pass
-
-   
-    def __cmp__(self, other):
-        return self.name == other.name
-    
-    # Necessary when __cmp__ or __eq__ is defined
-    # in order to make this class usable as a
-    # dictionary key:
-    def __hash__(self):
-        return hash(self.name)
-
-
-class Idle(TState):
-    # name = "idleState"
-
-    '''Idle state is slow monitoring of the camera, looking for movement'''
-    def __init__(self, *args, **kwargs) -> None:
-        super(Idle, self).__init__(*args, **kwargs)
-
-    def run(self, event:Event, data:GlobalData) -> States:
-        '''
-        Detect movement
-        No movement? Sleep 1 second. Return States.IDLE
-        evaluation.add_record(event.label, event.score)
-        '''
-        # sys.sleep(1)
-        # return States.IDLE
-        return States.TRIGGERING
-
-    def on_enter_state(self, event:Event, data:GlobalData) -> None:
-        '''When we return to idle we unlock the cat flap, so cats can exit from the inside, and
-        reset the evaluation class ready for the next event sequence'''
-        # data.cat_flap_control.cat_flap_unlock()
-        # logger.info(f"PUML idleState --> flapControl: cat-flap-unlock")
-        # data.evaluation = None
-        pass
-        
-    def on_exit_state(self, event:Event, data:GlobalData) -> None:
-        '''Leaving idle state - create a newly initialised statistics class'''
-        logger.debug(f"Exiting {self.__class__.__name__} state")
-
-
-class Triggering(TState):
-    # name = "triggeringState"
-
-    '''Movement was detected, now we are looking for a cat'''
-    def __init__(self, *args, **kwargs) -> None:
-        super(Triggering, self).__init__(*args, **kwargs)
-
-    def run(self, event:Event, data:GlobalData) -> States:
-        '''
-        Detect movement
-        No movement? Sleep 1 second. Return States.IDLE
-        evaluation.add_record(event.label, event.score)
-        '''
-        return States.MOVEMENT_LOCKED
-
-    def on_enter_state(self, event:Event, data:GlobalData) -> None:
-        '''When we return to idle we unlock the cat flap, so cats can exit from the inside, and
-        reset the evaluation class ready for the next event sequence'''
-        # logger.info(f"Entering {self.__class__.__name__} state")
-        # data.cat_flap_control.cat_flap_unlock()
-        # logger.info(f"PUML idleState --> flapControl: cat-flap-unlock")
-        pass
-
-    def on_exit_state(self, event:Event, data:GlobalData) -> None:
-        '''Leaving idle state - create a newly initialised statistics class'''
-        # logger.debug(f"Exiting {self.__class__.__name__} state")
-        '''Start the timeout timer on the transition out of idleState only'''
-        # self.timeout_timer = StateTimer(self._timeout_handle)
-        # self.timeout_timer.timer_start()
-        pass
-
-
-class MovementLocked(TState):
-    def __init__(self, *args, **kwargs) -> None:
-        super(MovementLocked, self).__init__(*args, **kwargs)
-
-    def run(self, event:Event, data:GlobalData) -> States:
-        '''From Movement Locked we can either unlock (no mouse is there) or go into
-        permanent lock when a mouse is detected.'''
-        retval = States.MOVEMENT_LOCKED
-        # evaluation.add_record(event.label, event.score)
-        # if evaluation.result == CatDetection.CAT_WITH_MOUSE:
-        #     retval = States.MOUSE_LOCKED
-        # elif evaluation.result == CatDetection.CAT_ALONE:
-        #     retval = States.UNLOCKED
-        return retval
-
-    def on_enter_state(self, event:Event, data:GlobalData) -> None:
-        #logger.info(f"Entering {self.__class__.__name__} state")
-        # control.cat_flap_lock()
-        logger.info(f"Doing something important here")
-        pass
-
-
-class Unlocked(TState):
-    def __init__(self, *args, **kwargs) -> None:
-        super(Unlocked, self).__init__(*args, **kwargs)
-
-    def run(self, event:Event, data:GlobalData) -> States:
-        '''The state machine will remain unlocked until a new movement is
-        detected or a timeout takes it back to idle'''
-        retval = States.UNLOCKED
-        # evaluation.add_record(event.label, event.score)
-        # if evaluation.result == CatDetection.CAT_WITH_MOUSE:
-        #     retval = States.MOUSE_LOCKED
-        return retval
-
-
-    def on_enter_state(self, event:Event, data:GlobalData) -> None:
-        #logger.info(f"Entering {self.__class__.__name__} state")
-        # control.cat_flap_unlock()
-        #logger.info(f"PUML unlockedState --> flapControl: cat-flap-unlock")
-        pass
-
-class MouseLocked(TState):
-    def __init__(self, *args, **kwargs) -> None:
-        super(MouseLocked, self).__init__(*args, **kwargs)
-
-    def run(self, event:Event, data:GlobalData) -> States:
-        retval = States.MOUSE_LOCKED
-        # evaluation.add_record(event.label, event.score)
-        # if evaluation.result == CatDetection.CAT_ALONE:
-        #     retval = States.MOVEMENT_LOCKED
-        return retval
-
-    def on_enter_state(self, event:Event, data:GlobalData) -> None:
-        # logger.info(f"Entering {self.__class__.__name__} state")
-        # control.cat_flap_lock()
-        # logger.info(f"PUML mouseLockedState --> flapControl: cat-flap-lock")
-        pass
-
-    def on_exit_state(self, event:Event, data:GlobalData) -> None:
-        # logger.info(f"Exiting {self.__class__.__name__} state")
-        pass
 
 class CatFlapFSM(StateMachine):
 
     '''Define the states'''
-    idleState = Idle(name=States.IDLE, initial=True)
-    triggeringState = Triggering(name=States.TRIGGERING)
-    unlockedState = Unlocked(name=States.UNLOCKED)
-    movementLockedState = MovementLocked(name=States.MOVEMENT_LOCKED)
-    mouseLockedState = MouseLocked(name=States.MOUSE_LOCKED)
+    idleState = IdleState(name=States.IDLE, initial=True)
+    triggeringState = TriggeringState(name=States.TRIGGERING)
+    unlockedState = UnlockedState(name=States.UNLOCKED)
+    movementLockedState = MovementLockedState(name=States.MOVEMENT_LOCKED)
+    mouseLockedState = MouseLockedState(name=States.MOUSE_LOCKED)
     '''State transitions. All same-state transitions are internal, which means they
         don't trigger the _exit and _enter actions if the from and too states are 
-        the same.'''
+        the same. 
+
+        !!! Be careful editing this table - it can break internally for no apparent
+        reason if you enter the wrong transition in the wrong place !!! If it gets broken
+        the _enter_state and _exit_state get called every time and the Internal flag is
+        ignored.
+    '''
     triggering = idleState.to(triggeringState) | triggeringState.to.itself(internal=True)
     movementLock = triggeringState.to(movementLockedState) | movementLockedState.to.itself(internal=True)
     unlock = movementLockedState.to(unlockedState) | unlockedState.to.itself(internal=True)
-    returnIdle = movementLockedState.to(idleState) | mouseLockedState.to(idleState) |  unlockedState.to(idleState) | idleState.to.itself(internal=True)
+    returnIdle = triggeringState.to(idleState) | movementLockedState.to(idleState) | mouseLockedState.to(idleState) |  unlockedState.to(idleState) | idleState.to.itself(internal=True)
     mouseLock = movementLockedState.to(mouseLockedState) | unlockedState.to(mouseLockedState) | mouseLockedState.to.itself(internal=True)
 
 
-    def __init__(self) -> None:
-        # Must come before parent init as this calls the Idle.on_enter_state method
-        self._data = GlobalData()
+    def __init__(self, global_data) -> None:
+        self._global_data = global_data
         StateMachine.__init__(self, CatFlapFSM.idleState)
         
         logger.info("PUML nullState -> idleState: Startup")
@@ -226,25 +65,13 @@ class CatFlapFSM(StateMachine):
     def event_handle(self, event:Event):
         '''Handle detection events from the cat AI system
             This is the first step in handling a new event from outside'''
-        logger.debug(f"Handling incoming detection event {event.detail} in state {self.current_state.id}")
-        # if self.evaluation == None:
-        #     logger.debug(f"Reset the evaluation statistics to default values")
-        #     self.evaluation = Evaluation()
-
+        logger.debug(f"{self.__class__.__name__} Handling incoming event {event} in state {self.current_state.id}")
         # Run the event handler for the current state with the incoming event and
         # the global data
-        self._data.new_state = self.states[self.current_state.run(event, self._data)]
-
-        # if self.current_state == self.idleState and new_state != self.idleState:
-        #     '''Start the timeout timer on the transition out of idleState only'''
-        #     # self.timeout_timer = StateTimer(self._timeout_handle)
-        #     # self.timeout_timer.timer_start()
-        # elif self.current_state != self.idleState and new_state == self.idleState:
-        #     self.evaluation = None
-        #     # self.timeout_timer.timer_stop()
-
+        self._global_data.add_event(event)
+        self._global_data.new_state = self.states[self.current_state.run(event, self._global_data)]
         # Call the state transition action
-        action = self.transitions[self._data.new_state.name]
+        action = self.transitions[self._global_data.new_state.name]
         action(self)
 
 
@@ -252,7 +79,6 @@ class CatFlapFSM(StateMachine):
         '''This is a watchdog type timer to ensure the cat flap is always opened
         when a movement sequence ends.'''
         logger.info(f"PUML {self.current_state.id} -> idleState: Timeout")
-        self.evaluation = None
         self.returnIdle()
 
     def exit(self):
@@ -273,12 +99,13 @@ class CatFlapFSM(StateMachine):
             The state parameter is the current state'''
         logger.debug(f"{self.__class__.__name__} on_exit_state: event  '{event}', exiting state '{state.id}'.")
         if hasattr(state, "on_exit_state") == True:
-            state.on_exit_state(event, self._data)
+            state.on_exit_state(event, self._global_data)
 
     def on_transition(self, event, state):
         '''3. Ready to transition from the old state to the new one. 
-            The state parameter here is the state we are leaving'''
-        logger.info(f"PUML {self.current_state.id} -> {self._data.new_state.id}: {event}")
+            The state parameter here is the state we are leaving.
+            This is called on every transition - even self to self '''
+        logger.info(f"PUML {self.current_state.id} -> {self._global_data.new_state.id}: {event}")
         pass
 
     def on_enter_state(self, event, state):
@@ -286,7 +113,7 @@ class CatFlapFSM(StateMachine):
             This will also enter idleState from __initial__'''
         logger.debug(f"{self.__class__.__name__} on_enter_state: event '{event}', entering state '{state.id}'.")
         if hasattr(state, "on_enter_state") == True:
-            state.on_enter_state(event, self._data)
+            state.on_enter_state(event, self._global_data)
 
     def after_transition(self, event, state):
         pass

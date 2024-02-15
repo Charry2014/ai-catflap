@@ -11,10 +11,10 @@ from os import path
 import sys, os
 
 from base_logger import logger
-from detections import TFLDetections, BoundingRect
-from states import CatFlapFSM
+# from detections import TFLDetections, BoundingRect
+from states import CatFlapFSM, Event
 from imgsrcfactory import ImageSourceFactory
-
+from statetypes import GlobalData
 
 import base64
 import socketio
@@ -51,13 +51,44 @@ def make_outfile_name(record_path, label, prob=1):
     outfile = path.join(record_path, f"{label}-{str(prob)}-{datestr}_catcam.jpg")
     return outfile
 
-
+''' The main loop entry point
+'''
 def cat_flap_control(args):
     img_src = ImageSourceFactory.create_source(args.stream)
-    img_src.open_image_source()
+    img_src.open()
 
-    state_machine = CatFlapFSM()
-    tflite = TFLiteDetect(args.model, args.enable_edgetpu, args.num_threads)
+    # Connect to the Flask server using socketio
+    sio = None
+    if hasattr(args, 'web') and args.web is not None:
+        logger.info(f"Connecting to web server at {args.web}")
+        sio = socketio.Client()
+        try:
+            sio.connect(args.web)
+        except:
+            logger.error(f"Connection to {args.web} failed")
+            delattr(args, 'web')
+
+    exit_code = 0
+    try:
+        logger.info("Started cat flap control")
+        state_machine = CatFlapFSM(GlobalData(args, event=Event(img_src.get_image())))
+
+        # Main loop - here we go
+        while img_src.isopen == True:
+            state_machine.event_handle(Event(img_src.get_image()))
+    except Exception as e:
+        logger.exception(f"Caught exception {e.__class__} - {e}")
+        time.sleep(2)
+        exit_code = 1
+    finally:
+        # Goodbye, world
+        cv.destroyAllWindows()
+        state_machine.exit()
+        img_src.close()
+        sys.exit(exit_code)
+
+
+
 
 
 def motionDetection(img_src, state_machine:CatFlapFSM, args):
@@ -244,6 +275,27 @@ def main():
         action='store', 
         type=str, 
         required=False)
+    parser.add_argument(
+        '--label-json', 
+        help="JSON file containing the detection labels",
+        action='store', 
+        required=False, 
+        type=str, 
+        default='./labels.json')
+    parser.add_argument(
+        '--trigger-json', 
+        help="JSON file containing the evaluation configuration for the triggering state",
+        action='store', 
+        required=False, 
+        type=str, 
+        default='./trigger_config.json')
+    parser.add_argument(
+        '--eval-json', 
+        help="JSON file containing the evaluation configuration for the motion locked state",
+        action='store', 
+        required=False, 
+        type=str,   
+        default='./eval_config.json')
     #  ML Parameters
     parser.add_argument(
         '--model',
