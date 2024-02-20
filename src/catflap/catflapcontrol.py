@@ -48,7 +48,7 @@ class CatFlapControl():
         # if self._locked == True and self.gpio_state == 1:
         #     return
         self._locked = True
-        logger.info(f"{self.__class__.__name__} locking cat flap")
+        logger.debug(f"{self.__class__.__name__} locking cat flap")
         if CPU == "i386":
             pass
         else:
@@ -58,14 +58,14 @@ class CatFlapControl():
         # if self._locked == False and self.gpio_state == 0:
         #     return
         self._locked = False
-        logger.info(f"{self.__class__.__name__} unlocking cat flap")
+        logger.debug(f"{self.__class__.__name__} unlocking cat flap")
         if CPU == "i386":
             pass
         else:
             GPIO.output(GPIO_PIN, GPIO.LOW)
 
     def exit(self) -> None:
-        logger.info(f"{self.__class__.__name__} exiting")
+        logger.debug(f"{self.__class__.__name__} exiting")
         self.cat_flap_unlock()
         if CPU == "i386":
             pass
