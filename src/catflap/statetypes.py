@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
-from statemachine import StateMachine, State
+from statemachine import State
 from enum import Enum
 from collections import deque
 import json
 import sys
 from base_logger import logger
 
-
+from catflapcontrol import CatFlapControl
 
 
 class States(int, Enum):
@@ -31,7 +31,7 @@ class Event():
         self._event = event
 
     def __str__(self) -> str:
-        return str(type(self._event))
+        return f"{str(type(self._event))}{self._event.shape}"
 
     @property
     def payload(self):
@@ -89,7 +89,7 @@ class GlobalData():
             self._headless = False
 
         # 
-        # self.cat_flap_control = CatFlapControl()
+        self.cat_flap_control = CatFlapControl()
         self.evaluation = None
         self.timeout_timer = None
         self.tflite = None

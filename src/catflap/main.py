@@ -53,7 +53,7 @@ def make_outfile_name(record_path, label, prob=1):
 
 ''' The main loop entry point
 '''
-def cat_flap_control(args):
+def main_loop(args):
     img_src = ImageSourceFactory.create_source(args.stream)
     img_src.open()
 
@@ -347,7 +347,7 @@ def main():
     exit_code = 0
     try:
         logger.info("Started cat flap control")
-        cat_flap_control(args)
+        main_loop(args)
         # img_src = ImageSourceFactory.create_source(args.stream)
         # img_src.open_image_source()
         #motionDetection(img_src, state_machine, args)

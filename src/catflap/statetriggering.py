@@ -2,7 +2,6 @@ import cv2 as cv
 import numpy as np
 
 from tflite_detect import TFLiteDetect
-# from detections import TFLDetections, BoundingRect, create_overlays, make_outfile_name
 from evaluation import Evaluation
 from statetypes import TState, GlobalData, Event, States, CatDetection
 from base_logger import logger
@@ -20,7 +19,6 @@ class TriggeringState(TState):
         '''When we return to idle we unlock the cat flap, so cats can exit from the inside, and
             reset the evaluation class ready for the next event sequence'''
         # logger.info(f"Entering {self.__class__.__name__} state")
-        # data.cat_flap_control.unlock()
         # logger.info(f"PUML idleState --> flapControl: cat-flap-unlock")
         data.tflite = TFLiteDetect(data.args.model, data.args.enable_edgetpu, data.args.num_threads)
         data.evaluation = Evaluation(data._json_labels, data._json_trigger, CatDetection)

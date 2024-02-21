@@ -14,13 +14,10 @@ class IdleState(TState):
         super(IdleState, self).__init__(*args, **kwargs)
 
     def on_enter_state(self, event:Event, data:GlobalData) -> None:
-        '''When we return to idle we unlock the cat flap, so cats can exit from the inside, and
-        reset the evaluation class ready for the next event sequence'''
-        # data.cat_flap_control.unlock()
-        # logger.info(f"PUML idleState --> flapControl: cat-flap-unlock")
-        # data.evaluation = None
-        pass
-        
+        '''When we return to idle we unlock the cat flap, so cats can exit from the inside'''
+        data.cat_flap_control.unlock()
+        data.timeout_timer.cancel()
+
     def run(self, event:Event, data:GlobalData) -> States:
         '''
         Detect movement
@@ -30,9 +27,8 @@ class IdleState(TState):
         retval = States.IDLE
         frame1, frame2 = data.get_images(2) # Get newest 2 images from queue
 
-        # Motion detection magic, trim the incoming images
-        cp1 = frame1[data.trigger_br:data.trigger_brh, data.trigger_bc:data.trigger_bcw]
-        cp2 = frame2[data.trigger_br:data.trigger_brh, data.trigger_bc:data.trigger_bcw]
+        cp1 = frame1[data.trigger_br:data.trigger_brh, data.trigger_bc:data.trigger_bcw].copy()
+        cp2 = frame2[data.trigger_br:data.trigger_brh, data.trigger_bc:data.trigger_bcw].copy()
 
         diff = cv.absdiff(cp1, cp2)
         diff_gray = cv.cvtColor(diff, cv.COLOR_BGR2GRAY)
@@ -42,19 +38,25 @@ class IdleState(TState):
         contours, _ = cv.findContours(dilated, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
 
         if data.headless == False:
-            new_image = cp2.copy()
-            cv.drawContours(new_image, contours, -1, (0, 255, 0), 2)
+            new_image = frame2.copy()
+            for contour in contours:
+                if cv.contourArea(contour) > 200:  # Filter small contours
+                    x, y, w, h = cv.boundingRect(contour)
+                    colour = (0, 255, 0)
+                    if w * h > 2000:
+                        colour = (0, 0, 255)
+                    cv.rectangle(new_image, (x+data.trigger_bc, y+data.trigger_br), (x+data.trigger_bc+w, y+data.trigger_br+h), colour, 2)
+
             cv.imshow(data.window_name, new_image)
             cv.waitKey(30)
 
-        # Check if enough movement is found
+        # Check if enough movement is found - is there a big enough rectangle
         total_area = 0
         for contour in contours:
-            area = cv.contourArea(contour)
-            total_area += area
-        logger.debug(f"{self.__class__.__name__} Movement detection area {total_area}")
-        if total_area > 1200:
-            retval = States.TRIGGERING
+            x, y, w, h = cv.boundingRect(contour)
+            if w * h > 2000:
+                retval = States.TRIGGERING
+                break
         else:
             time.sleep(1)
         

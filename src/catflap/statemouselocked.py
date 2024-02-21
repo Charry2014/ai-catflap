@@ -15,11 +15,9 @@ class MouseLockedState(TState):
         super(MouseLockedState, self).__init__(*args, **kwargs)
 
     def on_enter_state(self, event:Event, data:GlobalData) -> None:
-        # logger.info(f"Entering {self.__class__.__name__} state")
-        # control.cat_flap_lock()
-        # logger.info(f"PUML mouseLockedState --> flapControl: cat-flap-lock")
-        pass
-
+        logger.info(f"PUML mouseLockedState --> flapControl: cat-flap-lock")
+        data.cat_flap_control.lock()
+        data.timeout_timer.start()
 
     def run(self, event:Event, data:GlobalData) -> States:
         '''The cat has a mouse so the flap is locked. Here we can choose to keep evaluating and

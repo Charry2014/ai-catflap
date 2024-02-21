@@ -1,13 +1,11 @@
 
-from statemachine import StateMachine, State
+from statemachine import StateMachine
 import sys
 from base_logger import logger
-# from detections import TFLDetections, TFLDetection, BoundingRect
-from evaluation import Evaluation
 from catflapcontrol import CatFlapControl
 from statetimer import StateTimer
 
-from statetypes import TState, GlobalData, Event, States
+from statetypes import Event, States
 from stateidle import IdleState
 from statetriggering import TriggeringState
 from statemovementlocked import MovementLockedState
@@ -40,7 +38,13 @@ class CatFlapFSM(StateMachine):
 
 
     def __init__(self, global_data) -> None:
+        # Initialise the global data. This must be before the state machine init
+        # as this init will cause us to call the on_enter_state for idle.
+        # Create the timeout timer, and cat flap control object
         self._global_data = global_data
+        self._global_data.timeout_timer = StateTimer(self._timeout_handle, interval=1)
+        self._global_data.cat_flap_control = CatFlapControl()
+
         StateMachine.__init__(self, CatFlapFSM.idleState)
         
         logger.info("PUML nullState -> idleState: Startup")
@@ -60,7 +64,8 @@ class CatFlapFSM(StateMachine):
             States.MOVEMENT_LOCKED : self.movementLock,
             States.MOUSE_LOCKED : self.mouseLock
             }
-
+        self._return_idle = False
+        
 
     def event_handle(self, event:Event):
         '''Handle detection events from the cat AI system
@@ -70,6 +75,9 @@ class CatFlapFSM(StateMachine):
         # the global data
         self._global_data.add_event(event)
         self._global_data.new_state = self.states[self.current_state.run(event, self._global_data)]
+        if self._return_idle == True:
+            self._global_data.new_state = self.states[States.IDLE]
+            self._return_idle = False
         # Call the state transition action
         action = self.transitions[self._global_data.new_state.name]
         action(self)
@@ -77,14 +85,16 @@ class CatFlapFSM(StateMachine):
 
     def _timeout_handle(self, args):
         '''This is a watchdog type timer to ensure the cat flap is always opened
-        when a movement sequence ends.'''
+        when a movement sequence ends.
+        Note - is called in the Timer thread, so do not change state machine stuff.'''
         logger.info(f"PUML {self.current_state.id} -> idleState: Timeout")
-        self.returnIdle()
+        self._return_idle = True
 
     def exit(self):
         '''Called when the state machine must exit. Unlock cat flap and exit.'''
         logger.info(f"Handling state machine exit event")
-        # self._data.timeout_timer.timer_cancel()
+        self._global_data.timeout_timer.cancel()
+        self._global_data.cat_flap_control.unlock()
 
     ''' ------------------ Generic Transition Events ------------------
         These are sorted into order, called on specific transitions only
@@ -97,7 +107,8 @@ class CatFlapFSM(StateMachine):
     def on_exit_state(self, event, state):
         '''2. Exit the current state
             The state parameter is the current state'''
-        logger.debug(f"{self.__class__.__name__} on_exit_state: event  '{event}', exiting state '{state.id}'.")
+        # logger.debug(f"{self.__class__.__name__} on_exit_state: event  '{event}', exiting state '{state.id}'.")
+        logger.info(f"PUML {self.current_state.id} -> {self._global_data.new_state.id}: {event}")
         if hasattr(state, "on_exit_state") == True:
             state.on_exit_state(event, self._global_data)
 
@@ -105,7 +116,6 @@ class CatFlapFSM(StateMachine):
         '''3. Ready to transition from the old state to the new one. 
             The state parameter here is the state we are leaving.
             This is called on every transition - even self to self '''
-        logger.info(f"PUML {self.current_state.id} -> {self._global_data.new_state.id}: {event}")
         pass
 
     def on_enter_state(self, event, state):

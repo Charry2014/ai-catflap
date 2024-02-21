@@ -15,10 +15,11 @@ class MovementLockedState(TState):
         super(MovementLockedState, self).__init__(*args, **kwargs)
 
     def on_enter_state(self, event:Event, data:GlobalData) -> None:
-        #logger.info(f"Entering {self.__class__.__name__} state")
-        # control.cat_flap_lock()
+        logger.info(f"PUML movementLockedState --> flapControl: cat-flap-lock")
+        data.cat_flap_control.lock()
         data.tflite = TFLiteDetect(data.args.model, data.args.enable_edgetpu, data.args.num_threads)
         data.evaluation = Evaluation(data._json_labels, data._json_eval, CatDetection)
+        data.timeout_timer.start()
 
 
     def run(self, event:Event, data:GlobalData) -> States:
@@ -51,16 +52,5 @@ class MovementLockedState(TState):
         # cv.imwrite(outfile, frame)
 
         return retval
-
-
-    def on_exit_state(self, event:Event, data:GlobalData) -> None:
-        '''Leaving idle state - create a newly initialised statistics class'''
-        # logger.debug(f"Exiting {self.__class__.__name__} state")
-        '''Start the timeout timer on the transition out of idleState only'''
-        # self.timeout_timer = StateTimer(self._timeout_handle)
-        # self.timeout_timer.timer_start()
-        pass
-
-
 
 

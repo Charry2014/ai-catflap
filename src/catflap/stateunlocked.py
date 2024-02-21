@@ -10,10 +10,8 @@ class UnlockedState(TState):
         super(UnlockedState, self).__init__(*args, **kwargs)
 
     def on_enter_state(self, event:Event, data:GlobalData) -> None:
-        #logger.info(f"Entering {self.__class__.__name__} state")
-        # control.cat_flap_unlock()
-        #logger.info(f"PUML unlockedState --> flapControl: cat-flap-unlock")
-        pass
+        logger.info(f"PUML unlockedState --> flapControl: cat-flap-unlock")
+        data.cat_flap_control.unlock()
 
     def run(self, event:Event, data:GlobalData) -> States:
         '''The state machine will remain unlocked until a new movement is
