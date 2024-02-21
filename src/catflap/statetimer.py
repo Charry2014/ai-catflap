@@ -10,18 +10,20 @@ class StateTimer():
         '''
         self._interval = interval * 60
         self._callback = callback
-        self._timer = Timer(self._interval, self._internal_callback)
+        self._timer = None
         self._running = False
 
     def _internal_callback(self) -> None:
         logger.debug(f"{self.__class__.__name__} timer timeout.")
         self._running = False
         self._callback(args=None)
+        self._timer = None
 
     def start(self) -> None:
         '''Starts the timer if it is not running'''
         if self._running == False:
             logger.debug(f"{self.__class__.__name__} starting timer.")
+            self._timer = Timer(self._interval, self._internal_callback)
             self._timer.start()
             self._running = True
 
@@ -30,11 +32,14 @@ class StateTimer():
         logger.debug(f"{self.__class__.__name__} timer restarted.")
         if self._running == True:
             self._timer.cancel()
+        self._timer = Timer(self._interval, self._internal_callback)
         self._timer.start()
     
     def cancel(self):
         logger.debug(f"{self.__class__.__name__} timer canceled.")
-        self._running = False
-        self._timer.cancel()
+        if self._running == True:
+            self._running = False
+            self._timer.cancel()
+        self._timer = None
 
 
