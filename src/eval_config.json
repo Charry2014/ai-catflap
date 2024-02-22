@@ -3,7 +3,7 @@
         {
           "label": "Cat-alone",
           "values": {
-                "min_result_count": 3,
+                "min_result_count": 4,
                 "average_threshold": 0.5
           }
         },

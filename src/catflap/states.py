@@ -42,7 +42,7 @@ class CatFlapFSM(StateMachine):
         # as this init will cause us to call the on_enter_state for idle.
         # Create the timeout timer, and cat flap control object
         self._global_data = global_data
-        self._global_data.timeout_timer = StateTimer(self._timeout_handle, interval=1)
+        self._global_data.timeout_timer = StateTimer(self._timeout_handle, interval=5)
         self._global_data.cat_flap_control = CatFlapControl()
 
         StateMachine.__init__(self, CatFlapFSM.idleState)
