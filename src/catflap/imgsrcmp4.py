@@ -37,7 +37,6 @@ class ImageSourceMP4Video(AbstractImageSource):
         '''Closes an image source
         Returns 0 for success, or anything else for an error'''
         self.cap.release()
-        cv.destroyAllWindows()
         self._isopen = False
         return 0
 
@@ -45,6 +44,8 @@ class ImageSourceMP4Video(AbstractImageSource):
         '''Gets the next image from an image source
         Returns the image, or None when there are no more'''
         _, frame = self.cap.read()
+        if type(frame) == type(None):
+            self._isopen = False
         return frame
     
 
