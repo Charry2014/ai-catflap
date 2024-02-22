@@ -72,6 +72,7 @@ class StatsFactory():
         self._index = 0
         self._config = config
         self._result_enum = result
+        self._default_result = result(len(self._result_enum)-1)
         assert('thresholds' in config)
         self._thresholds = dict([ (l['label'], l['values']) for l in config['thresholds'] ])
 
@@ -86,7 +87,8 @@ class StatsFactory():
             stat = Stats(label)
             [setattr(stat, l, self._thresholds[label][l]) for l in self._thresholds[label] ]
             stat._triggered_result = self._result_enum(self._index)
-            stat._status = self._result_enum(len(self._result_enum)-1)
+            stat._default_result = self._default_result 
+            stat._status = self._default_result
 
         self._index += 1
         return stat
@@ -112,19 +114,42 @@ class Evaluation():
         self._stats = dict([(l, factory.create(l)) for l in labels])
         self._count = 0
         self._result = result_enum(len(result_enum)-1)
+        self._last_result = self._default_result = result_enum(len(result_enum)-1)
 
     def __str__(self) -> str:
         return f"{self._count}:{self._result}"
 
+    # Stats for Cat-with-mouse m-avg:0.59 min:0.01 max:0.73 count:43 delta:-0.03 result CAT_WITH_MOUSE
+    # Stats for Cat-alone m-avg:0.47 min:0.01 max:0.57 count:26 delta:0.02 result UNDECIDED
+    # Stats for Cat-alone m-avg:0.53 min:0.01 max:0.58 count:28 delta:0.04 result CAT_ALONE
+    # The score is calculated (m-avg * count * max)
+    def __evaluate(self) -> int:
+        '''Evaluates the stats results. For any result that is not the default (ie. the basic
+            evaluation criteria have been met) they are scored by their overall weight and the
+            best one is returned as the result.
+            The return value is from the CatDetection Enum'''
+        retval = self._default_result
+        result_list = []
+        for k,v in self._stats.items():
+            if v == None or v._status == v._default_result:
+                continue
+            v._score = v.count * v.max * v._moving_average
+            result_list.append(v)
+        result_list.sort(key = lambda x: x._score, reverse=True)
+        if len(result_list) > 0:
+            retval = result_list[0].status
+        return retval
+ 
+
     def add_record(self, label:str, value:float) -> int:
-        '''Add the record to the statistics'''
-        if self._stats[label] == None:
-            # this is a label that is not used in this evaluation
-            # will return the default value UNDECIDED
-            pass
-        else:
-            self._result = self._stats[label].push(value)
-        return self._result
+        '''Add the record to the statistic, if the label is relevant for this evaluation
+            The return value is from the CatDetection Enum'''
+        retval = self._last_result
+        if self._stats[label] != None:
+            self._stats[label].push(value)
+            self._last_result = retval = self.__evaluate()
+
+        return retval
 
     @property
     def result(self) -> int:

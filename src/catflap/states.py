@@ -70,6 +70,10 @@ class CatFlapFSM(StateMachine):
     def event_handle(self, event:Event):
         '''Handle detection events from the cat AI system
             This is the first step in handling a new event from outside'''
+        if type(event.payload) == type(None):
+            logger.debug(f"{self.__class__.__name__} State machine exiting on None event")
+            return
+
         logger.debug(f"{self.__class__.__name__} Handling incoming event {event} in state {self.current_state.id}")
         # Run the event handler for the current state with the incoming event and
         # the global data
