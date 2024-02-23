@@ -8,6 +8,7 @@ from imgsrcfactory import ImageSourceFactory
 from statetypes import GlobalData
 
 import socketio
+import base64
 
 # Shut off noisy messages -
 # connectionpool(292):DEBUG Resetting dropped connection: 10.0.0.38
@@ -15,6 +16,14 @@ import socketio
 import logging
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
+
+def emit_image_to_web(sio, frame1):
+    '''Emit an image to the website'''    
+    # Convert the frame to JPEG format
+    _, buffer = cv.imencode('.jpg', frame1)
+    jpeg_bytes = base64.b64encode(buffer.tobytes()).decode('utf-8')
+    # Send the frame to the server
+    sio.emit('image_data', {'image': jpeg_bytes})
 
 ''' The main loop entry point
 '''
@@ -32,6 +41,8 @@ def main_loop(args):
         except:
             logger.error(f"Connection to {args.web} failed")
             delattr(args, 'web')
+        else:
+            logger.info(f"Connected to web server")
 
     exit_code = 0
     try:
@@ -40,7 +51,10 @@ def main_loop(args):
 
         # Main loop - here we go
         while img_src.isopen == True:
-            state_machine.event_handle(Event(img_src.get_image()))
+            event = Event(img_src.get_image())
+            if hasattr(args, 'web'):
+                emit_image_to_web(sio, event.payload)
+            state_machine.event_handle(event)
     except Exception as e:
         logger.exception(f"Caught exception {e.__class__} - {e}")
         time.sleep(2)
