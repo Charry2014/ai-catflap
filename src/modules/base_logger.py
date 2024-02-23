@@ -30,7 +30,9 @@ elif os.path.exists(os.path.join(directory_path, file_name)):
 
 filelogger = logging.FileHandler(filename=directory_path + file_name)
 filelogger.setFormatter(logging.Formatter(_format_string))
+
 filelogger.setLevel(logging.INFO)
+logger.setLevel(logging.INFO)
 
 logger.addHandler(filelogger)
 
