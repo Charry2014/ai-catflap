@@ -1,0 +1,31 @@
+{
+    "thresholds": [
+        {
+            "label": "Background",
+            "values": {
+                  "min_result_count": 3,
+                  "average_threshold": 0.3
+            }
+          },        {
+          "label": "Cat-alone",
+          "values": {
+                "min_result_count": 1,
+                "average_threshold": 0.3
+          }
+        },
+        {
+          "label":"Cat-with-mouse",	
+		  "values": {
+            "min_result_count": 1,
+            "average_threshold": 0.3
+            }
+        },
+        {
+          "label":"Cat-body",	
+		  "values": {
+            "min_result_count": 1,
+            "average_threshold": 0.3
+            }
+        }
+    ]
+}
