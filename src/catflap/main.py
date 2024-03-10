@@ -22,8 +22,11 @@ def emit_image_to_web(sio, frame1):
     # Convert the frame to JPEG format
     _, buffer = cv.imencode('.jpg', frame1)
     jpeg_bytes = base64.b64encode(buffer.tobytes()).decode('utf-8')
-    # Send the frame to the server
-    sio.emit('image_data', {'image': jpeg_bytes})
+    # Send the frame to the server, this does crash sometimes, so we catch it
+    try:
+        sio.emit('image_data', {'image': jpeg_bytes})
+    except Exception as e:
+        logger.error(f"Error sending image to web: {e}")
 
 ''' The main loop entry point
 '''
