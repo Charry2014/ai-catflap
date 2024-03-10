@@ -8,7 +8,7 @@
 BASE_PATH="$PWD"
 STREAM=http://10.0.0.195:8000/stream.mjpg
 MODEL=test/cats.tflite
-WEBSITE=http://10.0.0.38:5000
+WEBSITE=https://catcam.lesmartinslocal.duckdns.org/ 
 
 # Process command line options
 while getopts p:s:m:w: flag
