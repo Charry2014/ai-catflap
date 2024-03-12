@@ -28,6 +28,9 @@ def emit_image_to_web(sio, frame1):
     except Exception as e:
         logger.error(f"Error sending image to web: {e}")
 
+
+
+
 ''' The main loop entry point
 '''
 def main_loop(args):
@@ -56,7 +59,17 @@ def main_loop(args):
         while img_src.isopen == True:
             event = Event(img_src.get_image())
             if hasattr(args, 'web'):
-                emit_image_to_web(sio, event.payload)
+                # copy the image in event.payload
+                # apply overlay text with a small font size
+                # get current time hour, minute, second
+                
+                current_time = time.localtime() 
+                hour = current_time.tm_hour
+                minute = current_time.tm_min
+                second = current_time.tm_sec
+                frame_copy = event.payload.copy()
+                frame_copy = cv.putText(frame_copy, f'{hour:02}:{minute:02}:{second:02}', (10, 30), cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+                emit_image_to_web(sio, frame_copy)
             state_machine.event_handle(event)
     except Exception as e:
         logger.exception(f"Caught exception {e.__class__} - {e}")
