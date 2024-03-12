@@ -7,7 +7,6 @@ from base_logger import logger
 
 
 class IdleState(TState):
-    window_name = 'Movement Contours'
 
     '''Idle state is slow monitoring of the camera, looking for movement'''
     def __init__(self, *args, **kwargs) -> None:

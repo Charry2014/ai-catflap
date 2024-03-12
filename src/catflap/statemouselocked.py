@@ -9,7 +9,6 @@ from base_logger import logger
 
 
 class MouseLockedState(TState):
-    window_name = 'Detections'
 
     def __init__(self, *args, **kwargs) -> None:
         super(MouseLockedState, self).__init__(*args, **kwargs)

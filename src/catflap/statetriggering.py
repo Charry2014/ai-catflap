@@ -9,7 +9,6 @@ from base_logger import logger
 
 
 class TriggeringState(TState):
-    window_name = 'Detections'
 
     '''Movement was detected, now we are looking for a cat'''
     def __init__(self, *args, **kwargs) -> None:
