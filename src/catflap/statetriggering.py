@@ -54,8 +54,10 @@ class TriggeringState(TState):
 
         # Decide next state once after all evaluations are done
         if eval == CatDetection.BACKGROUND:
+            data.record_image(event.payload, "toidle")
             retval = States.IDLE
         elif eval != CatDetection.UNDECIDED:
+            data.record_image(event.payload, "locking")
             retval = States.MOVEMENT_LOCKED
 
         return retval

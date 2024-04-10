@@ -15,7 +15,8 @@ from stateunlocked import UnlockedState
 
 class CatFlapFSM(StateMachine):
 
-    '''Define the states'''
+    '''Define the states - NOTE - this is called as soon as the import statement is executed.
+        This means the inits can't be used for anything that depends on the global data'''
     idleState = IdleState(name=States.IDLE, initial=True)
     triggeringState = TriggeringState(name=States.TRIGGERING)
     unlockedState = UnlockedState(name=States.UNLOCKED)

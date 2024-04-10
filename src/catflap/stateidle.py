@@ -55,6 +55,8 @@ class IdleState(TState):
             x, y, w, h = cv.boundingRect(contour)
             if w * h > 2000:
                 retval = States.TRIGGERING
+                data.record_image(frame2, "movement")
+                data.timeout_timer.start()
                 break
         else:
             time.sleep(1)

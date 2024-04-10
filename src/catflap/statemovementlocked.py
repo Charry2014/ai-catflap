@@ -34,9 +34,11 @@ class MovementLockedState(TState):
 
             # Decide next state, after each detection result - first result wins
             if eval == CatDetection.CAT_ALONE:
+                data.record_image(event.payload, "unlock")
                 retval = States.UNLOCKED
                 break
             elif eval == CatDetection.CAT_WITH_MOUSE:
+                data.record_image(event.payload, "mouselock")
                 retval = States.MOUSE_LOCKED
                 break
 

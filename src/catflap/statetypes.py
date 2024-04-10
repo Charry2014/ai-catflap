@@ -2,11 +2,13 @@ from abc import ABC, abstractmethod
 from statemachine import State
 from enum import Enum
 from collections import deque
+from array import array
 import json
 import sys
 from base_logger import logger
 
 from catflapcontrol import CatFlapControl
+import image_recorder
 
 
 class States(int, Enum):
@@ -94,6 +96,10 @@ class GlobalData():
         self.timeout_timer = None
         self.tflite = None
 
+        # Create the image recorder
+        self._image_recorder = image_recorder.image_recorder(self.args.record_path)
+
+
     '''Settings'''
     @property
     def headless(self) -> bool:
@@ -121,6 +127,8 @@ class GlobalData():
     def get_images(self, count=1) -> list:
         return [e.payload for e in list(self._event_queue)[(-1 * count):]]
 
+    def record_image(self, image: array, label:str):
+        self._image_recorder(image, label)
 
     @property
     def window_name(self) -> str:
