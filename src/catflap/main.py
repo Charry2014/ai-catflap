@@ -58,6 +58,8 @@ def main_loop(args):
         # Main loop - here we go
         while img_src.isopen == True:
             event = Event(img_src.get_image())
+            if event.payload is None:
+                break
             if hasattr(args, 'web'):
                 # copy the image in event.payload
                 # apply overlay text with a small font size
