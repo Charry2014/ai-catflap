@@ -4,6 +4,8 @@ from tflite_support.task import vision
 
 import cv2 as cv
 
+from detections import BoundingRect, TFLDetection
+
 
 from datetime import datetime
 from os import path
@@ -25,36 +27,6 @@ def make_outfile_name(record_path, label, prob=1):
     outfile = path.join(record_path, f"{label}-{str(prob)}-{datestr}_catcam.jpg")
     return outfile
 
-
-class BoundingRect():
-    def __init__(self, origin_x: int, origin_y:int, width:int, height:int ) -> None:
-        '''The same as used by tflite but defined here for ease of use'''
-        self.origin_x = origin_x
-        self.origin_y = origin_y
-        self.width = width
-        self.height = height
-
-    def __str__(self) -> str:
-        return f"BoundingRect(origin_x={self.origin_x}, origin_y={self.origin_y}, width={self.width}, height={self.height})"
-
-class TFLDetection():
-    def __init__(self, label:str, index: int, score:float, box:BoundingRect) -> None:
-        self.label = label
-        self.index = index
-        self.score = score
-        self.box = box
-
-    def __iter__(self):
-        yield self.label
-        yield self.score
-        yield self.box
-
-    def __str__(self) -> str:
-        return f"{self.index}-{self.label}({self.score:.2f})"
-        
-    @property
-    def detail(self) ->str:
-        return f"{self} {self.score:.2f} {self.box}"
 
 class TFLiteDetect(object):
 

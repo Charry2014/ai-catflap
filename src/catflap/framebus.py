@@ -82,3 +82,9 @@ class FrameBus:
         This is what pre-roll recording will use.'''
         with self._cond:
             return [f for f in self._frames if f.ts >= ts]
+
+    def after(self, frame_id: int) -> list:
+        '''Frames with an id greater than frame_id, oldest first. If the ring
+        has already dropped some of them, those are simply missing.'''
+        with self._cond:
+            return [f for f in self._frames if f.id > frame_id]

@@ -226,4 +226,16 @@ A minimal hacky logging wrapper to log both to the console and a file. Generally
 
 
 ### Capture pipeline
-The camera runs on its own thread (`capturethread.py`) and publishes timestamped, read-only frames to a ring buffer (`framebus.py`) at 15 fps. The main loop always takes the newest frame, so if detection is slower than the camera frames are skipped instead of queued. Slow work (JPEG writes, website preview) runs on background threads (`backgroundworker.py`) and never blocks capture. The TFLite model is loaded once at startup. Every 30 s the log shows captured / processed / skipped frame counts and latency. Video files are replayed at their recorded frame rate. Tests: `pip install pytest && pytest test/`.
+Work is split over threads that hand over data through small bounded buffers, so a slow stage never stalls the camera:
+
+| Thread | Does | Hands over via |
+|---|---|---|
+| capture (`capturethread.py`) | the only code that reads the camera, 15 fps | `FrameBus` ring buffer of timestamped, read-only frames (`framebus.py`) |
+| analysis (`analysisthread.py`) | newest frame only: movement boxes while idle (`motion.py`), ML model once the state machine has armed it | event queue |
+| main | the state machine, GPIO and windows. Nothing slow runs here | - |
+| clip recorder (`videorecorder.py`, `--record_video`) | reads frames straight from the ring buffer and writes an mp4 starting `--preroll` seconds before the trigger until `--postroll` seconds after the last activity | `trigger(ts)` from the state machine |
+| image writer, website | JPEG writes and the preview, in `backgroundworker.py` threads with bounded queues | queues |
+
+If the model is slower than the camera, frames are skipped, not queued. Results are tied to the capture time of their frame (`annotations.py`), so with `--record_overlays` the boxes in stills and video are drawn on the frame the model actually saw. The timeout timer posts an event instead of changing state from its own thread. The model is loaded once at startup. Every 30 s the log shows captured / analysed / skipped / dropped counts and latency. Video files are replayed at their recorded frame rate.
+
+Tests need no camera, Pi or TFLite: `pip install pytest && pytest test/` (Python 3.11 or older with `python-statemachine==2.0.0`).

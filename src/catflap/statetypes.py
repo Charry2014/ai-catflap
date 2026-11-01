@@ -9,6 +9,8 @@ from base_logger import logger
 
 from catflapcontrol import CatFlapControl
 import image_recorder
+from annotations import AnnotationLog
+from detections import draw_detections
 
 
 class States(int, Enum):
@@ -27,14 +29,29 @@ class CatDetection(int, Enum):
     UNDECIDED = 4
 
 
+class EventKind(Enum):
+    FRAME = 1      # A frame, analysed by the analysis thread
+    TIMEOUT = 2    # The watchdog timer expired
+    END = 3        # No more events will come
+
+
 class Event():
-    '''Basic event wrapper class so state machine stays more generic'''
-    def __init__(self, event, ts: float = None, frame_id: int = None):
+    '''Basic event wrapper class so state machine stays more generic.
+    A FRAME event carries the image plus what the analysis thread made of it:
+    `motion` (list of MotionBox) when the flap is idle, `detections` (list of
+    TFLDetection) when the ML model ran. `armed` says which of the two it is.'''
+    def __init__(self, event, ts: float = None, frame_id: int = None,
+                 kind: EventKind = EventKind.FRAME, detections=None, motion=None,
+                 armed: bool = False):
         self._event = event
         # Capture time (time.monotonic()) and id of the frame, so states can
         # reason about time without reading the clock themselves
         self.ts = ts
         self.frame_id = frame_id
+        self.kind = kind
+        self.detections = detections if detections is not None else []
+        self.motion = motion if motion is not None else []
+        self.armed = armed
 
     def __str__(self) -> str:
         shape = getattr(self._event, 'shape', None)
@@ -99,10 +116,13 @@ class GlobalData():
         self.cat_flap_control = CatFlapControl()
         self.evaluation = None
         self.timeout_timer = None
-        # The TFLite detector. Loading the model is slow, so main creates it once at startup
-        self.tflite = None
-        # Recent (ts, cropped frame) pairs used by the idle state for motion detection
-        self.idle_history = deque()
+        # Set by main: the queue the state machine reads, the analysis thread
+        # (told when to run the model), and the optional video clip recorder
+        self.events = None
+        self.analysis = None
+        self.clips = None
+        # Detection results by capture time, so recordings can show them
+        self.annotations = AnnotationLog()
 
         # Create the image recorder
         self._image_recorder = image_recorder.image_recorder(self.args.record_path)
@@ -135,12 +155,34 @@ class GlobalData():
     def get_images(self, count=1) -> list:
         return [e.payload for e in list(self._event_queue)[(-1 * count):]]
 
-    def record_image(self, image: array, label:str):
+    def record_image(self, image: array, label: str, detections=None):
+        '''Save a still. With --record_overlays the detection results are drawn on it.'''
+        if detections and getattr(self.args, 'record_overlays', False):
+            image = draw_detections(image.copy(), detections)
         self._image_recorder(image, label)
+
+    def last_event_ts(self):
+        '''Capture time of the newest frame seen, for clock-free triggering of clips'''
+        return self._event_queue[-1].ts if self._event_queue else None
+
+    def set_armed(self, armed: bool) -> None:
+        '''Tell the analysis thread whether to run the ML model (True) or just watch for movement'''
+        if self.analysis is not None:
+            self.analysis.set_armed(armed)
+
+    def post_timeout(self) -> None:
+        '''Called from the timer thread: hand the timeout to the state machine's thread'''
+        if self.events is not None:
+            try:
+                self.events.put(Event(None, kind=EventKind.TIMEOUT), timeout=5)
+            except Exception:
+                logger.error("Could not post timeout event")
 
     def close(self) -> None:
         '''Flush any queued recordings'''
         self._image_recorder.close()
+        if self.clips is not None:
+            self.clips.close()
 
     @property
     def window_name(self) -> str:

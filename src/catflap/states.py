@@ -5,7 +5,7 @@ from base_logger import logger
 from catflapcontrol import CatFlapControl
 from statetimer import StateTimer
 
-from statetypes import Event, States
+from statetypes import Event, EventKind, States
 from stateidle import IdleState
 from statetriggering import TriggeringState
 from statemovementlocked import MovementLockedState
@@ -65,35 +65,44 @@ class CatFlapFSM(StateMachine):
             States.MOVEMENT_LOCKED : self.movementLock,
             States.MOUSE_LOCKED : self.mouseLock
             }
-        self._return_idle = False
-        
 
     def event_handle(self, event:Event):
-        '''Handle detection events from the cat AI system
-            This is the first step in handling a new event from outside'''
-        if type(event.payload) == type(None):
-            logger.debug(f"{self.__class__.__name__} State machine exiting on None event")
+        '''Handle an event from the analysis thread or the timeout timer.
+        This is the first step in handling a new event from outside, and it
+        always runs on the main thread.'''
+        data = self._global_data
+        if event.kind == EventKind.END:
             return
-
-        logger.debug(f"{self.__class__.__name__} Handling incoming event {event} in state {self.current_state.id}")
-        # Run the event handler for the current state with the incoming event and
-        # the global data
-        self._global_data.add_event(event)
-        self._global_data.new_state = self.states[self.current_state.run(event, self._global_data)]
-        if self._return_idle == True:
-            self._global_data.new_state = self.states[States.IDLE]
-            self._return_idle = False
+        in_idle = self.current_state.name == States.IDLE
+        if event.kind == EventKind.TIMEOUT:
+            if in_idle:
+                return
+            logger.info(f"PUML {self.current_state.id} -> idleState: Timeout")
+            data.new_state = self.states[States.IDLE]
+        else:
+            if event.payload is None:
+                return
+            if event.armed == in_idle:
+                # Analysed for a state we have already left (idle: movement
+                # analysis, otherwise: ML), so the result is stale
+                return
+            logger.debug(f"{self.__class__.__name__} Handling incoming event {event} in state {self.current_state.id}")
+            data.add_event(event)
+            if event.armed:
+                data.annotations.add(event.ts, event.frame_id, event.detections, self.current_state.id)
+                if data.clips is not None:
+                    data.clips.trigger(event.ts)    # Something is going on: keep recording
+            data.new_state = self.states[self.current_state.run(event, data)]
         # Call the state transition action
-        action = self.transitions[self._global_data.new_state.name]
+        action = self.transitions[data.new_state.name]
         action(self)
 
 
     def _timeout_handle(self, args):
         '''This is a watchdog type timer to ensure the cat flap is always opened
         when a movement sequence ends.
-        Note - is called in the Timer thread, so do not change state machine stuff.'''
-        logger.info(f"PUML {self.current_state.id} -> idleState: Timeout")
-        self._return_idle = True
+        Note - is called in the Timer thread, so it only posts an event for the main thread.'''
+        self._global_data.post_timeout()
 
     def exit(self):
         '''Called when the state machine must exit. Unlock cat flap and exit.'''
@@ -127,6 +136,12 @@ class CatFlapFSM(StateMachine):
         '''4. Entering the new state - the state parameter here is now the new state
             This will also enter idleState from __initial__'''
         logger.debug(f"{self.__class__.__name__} on_enter_state: event '{event}', entering state '{state.id}'.")
+        # The ML model only runs while there is something to look at
+        self._global_data.set_armed(state.name != States.IDLE)
+        if state.name != States.IDLE and self._global_data.clips is not None:
+            ts = self._global_data.last_event_ts()
+            if ts is not None:
+                self._global_data.clips.trigger(ts)
         if hasattr(state, "on_enter_state") == True:
             state.on_enter_state(event, self._global_data)
 

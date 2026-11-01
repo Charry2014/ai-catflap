@@ -4,6 +4,7 @@ import numpy as np
 from evaluation import Evaluation
 from statetypes import TState, GlobalData, Event, States, CatDetection
 from base_logger import logger
+from detections import draw_detections
 
 
 
@@ -28,11 +29,12 @@ class TriggeringState(TState):
         '''
         retval = States.TRIGGERING
 
-        for d in data.tflite.detect(event.payload):
+        eval = CatDetection.UNDECIDED
+        for d in event.detections:
             eval = data.evaluation.add_record(d.label, d.score)
             logger.debug(f'{self.__class__.__name__} detection {d.label} {d.score} results {eval.name}')
 
-        if len(data.tflite) == 0:
+        if len(event.detections) == 0:
             # This image was not recognised, so treat it as a low certainty background
             # This is done here as we want to return to idle if no cat is seen. We don't
             # want to drop too many images and potentially get stuck here too long
@@ -42,20 +44,15 @@ class TriggeringState(TState):
             # Record or show the detection results
             if data.headless == False:
                 new_image = event.payload.copy()
-                cv.imshow(data.window_name, data.tflite.create_overlays(new_image))
+                cv.imshow(data.window_name, draw_detections(new_image, event.detections))
                 cv.waitKey(1)
-            # TODO - Record an image with the overlays
-            # if(data.args.record_overlays == True):
-            #     frame = create_overlays(frame, detections)
-            # outfile = make_outfile_name(data.args.record_path, detections[0].label, detections[0].score)
-            # cv.imwrite(outfile, frame)
 
         # Decide next state once after all evaluations are done
         if eval == CatDetection.BACKGROUND:
-            data.record_image(event.payload, "toidle")
+            data.record_image(event.payload, "toidle", event.detections)
             retval = States.IDLE
         elif eval != CatDetection.UNDECIDED:
-            data.record_image(event.payload, "locking")
+            data.record_image(event.payload, "locking", event.detections)
             retval = States.MOVEMENT_LOCKED
 
         return retval

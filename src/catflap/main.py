@@ -1,5 +1,6 @@
 import cv2 as cv
 import numpy as np
+import queue
 import time
 import sys
 
@@ -8,6 +9,10 @@ from states import CatFlapFSM, Event
 from imgsrcfactory import ImageSourceFactory
 from statetypes import GlobalData
 from tflite_detect import TFLiteDetect
+from motion import MotionDetector
+from analysisthread import AnalysisThread
+from videorecorder import ClipRecorder
+from statetypes import EventKind
 from framebus import FrameBus
 from capturethread import CaptureThread
 from backgroundworker import BackgroundWorker
@@ -22,6 +27,7 @@ import logging
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 
+FPS = 15               # Frame rate of the pipeline: camera, pre-roll and video clips
 WEB_MAX_FPS = 10        # The website only needs a preview, not every frame
 STATS_INTERVAL = 30.0   # Seconds between pipeline statistics log lines
 
@@ -35,16 +41,20 @@ class WebPublisher():
         self._last_ts = None
         self._worker = BackgroundWorker(self._send, "web-publisher", maxsize=1, drop_oldest=True)
 
-    def offer(self, frame) -> None:
-        if self._last_ts is not None and frame.ts - self._last_ts < 1.0 / WEB_MAX_FPS:
+    def offer(self, event) -> None:
+        if event.payload is None:
             return
-        self._last_ts = frame.ts
-        self._worker.submit(frame)
+        if self._last_ts is not None and event.ts - self._last_ts < 1.0 / WEB_MAX_FPS:
+            return
+        self._last_ts = event.ts
+        # Time of day is read here, on the main thread, as the frame's own time is not kept in events
+        self._worker.submit((event.payload, time.time()))
 
-    def _send(self, frame) -> None:
-        # Overlay the capture time on a copy (the frame itself is read-only)
-        stamp = time.strftime('%H:%M:%S', time.localtime(frame.wall))
-        image = cv.putText(frame.image.copy(), stamp, (10, 30), cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+    def _send(self, item) -> None:
+        # Overlay the time on a copy (the frame itself is read-only)
+        frame, wall = item
+        stamp = time.strftime('%H:%M:%S', time.localtime(wall))
+        image = cv.putText(frame.copy(), stamp, (10, 30), cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
         _, buffer = cv.imencode('.jpg', image)
         jpeg_bytes = base64.b64encode(buffer.tobytes()).decode('utf-8')
         # Sending does crash sometimes, so we catch it
@@ -57,6 +67,13 @@ class WebPublisher():
         self._worker.close()
 
 
+def _safely(fn, *args):
+    try:
+        fn(*args)
+    except Exception:
+        logger.exception(f"Error during shutdown in {getattr(fn, '__name__', fn)}")
+
+
 def create_detector(args, size):
     '''Load the model once, and run a dummy frame through it so the first real
     detection is not slow.'''
@@ -67,7 +84,14 @@ def create_detector(args, size):
     return detector
 
 
-''' The main loop entry point
+''' The main loop entry point.
+
+    Threads:
+      capture   - camera -> FrameBus (framebus.py)
+      analysis  - newest frame -> movement boxes (idle) or ML detections (armed) -> events
+      recorder  - FrameBus -> video clips with pre-roll (optional)
+      web, image writer - background workers for slow output
+      main      - this loop: events -> state machine, GPIO, windows. Nothing slow runs here.
 '''
 def main_loop(args):
     img_src = ImageSourceFactory.create_source(args.stream)
@@ -91,8 +115,11 @@ def main_loop(args):
             web = WebPublisher(sio)
 
     exit_code = 0
-    bus = FrameBus()
+    # The ring buffer must hold the pre-roll plus some slack for the recorder
+    keep = int((args.preroll + 2) * FPS) if args.record_video else FPS
+    bus = FrameBus(maxlen=max(keep, FPS))
     capture = CaptureThread(img_src, bus)
+    analysis = None
     state_machine = None
     data = None
     try:
@@ -102,47 +129,59 @@ def main_loop(args):
         if frame is None:
             logger.error("No images from the image source")
             return 1
+        height, width = frame.image.shape[:2]
+        events = queue.Queue(maxsize=32)
         data = GlobalData(args, event=Event(frame.image, frame.ts, frame.id))
-        data.tflite = create_detector(args, (frame.image.shape[1], frame.image.shape[0]))
+        data.events = events
+        if args.record_video:
+            data.clips = ClipRecorder(bus, args.record_path, fps=FPS, preroll=args.preroll,
+                                      postroll=args.postroll,
+                                      annotations=data.annotations if args.record_overlays else None)
+        detector = create_detector(args, (width, height))
+        motion = MotionDetector(data.trigger_bc, data.trigger_br, data.trigger_bcw, data.trigger_brh)
+        analysis = AnalysisThread(bus, events, detector, motion)
+        data.analysis = analysis
         state_machine = CatFlapFSM(data)
 
-        # Main loop - always works on the newest frame. If detection is slower
-        # than the camera the frames in between are skipped, never queued.
-        processed = skipped = 0
+        analysis.start()
         stats_at = time.monotonic() + STATS_INTERVAL
-        last_id = frame.id
         while True:
-            frame = bus.wait_newer(last_id, timeout=1.0)
-            if frame is None:
-                if bus.closed:
-                    break
+            try:
+                event = events.get(timeout=1.0)
+            except queue.Empty:
                 continue
-            skipped += frame.id - last_id - 1
-            processed += 1
-            last_id = frame.id
-            if web is not None:
-                web.offer(frame)
-            state_machine.event_handle(Event(frame.image, frame.ts, frame.id))
+            if event.kind == EventKind.END:
+                break
+            if web is not None and event.kind == EventKind.FRAME:
+                web.offer(event)
+            state_machine.event_handle(event)
             if time.monotonic() >= stats_at:
-                logger.info(f"Pipeline: captured {bus.published}, processed {processed}, skipped {skipped}, "
-                            f"latency {1000 * (time.monotonic() - frame.ts):.0f} ms")
+                latency = 1000 * (time.monotonic() - event.ts) if event.ts else 0
+                logger.info(f"Pipeline: captured {bus.published}, analysed {analysis.processed}, "
+                            f"skipped {analysis.skipped}, dropped {analysis.dropped}, latency {latency:.0f} ms")
                 stats_at = time.monotonic() + STATS_INTERVAL
+        if analysis.failed:
+            exit_code = 1
     except Exception as e:
         logger.exception(f"Caught exception {e.__class__} - {e}")
         time.sleep(2)
         exit_code = 1
     finally:
-        # Goodbye, world
-        capture.stop()
-        capture.join(timeout=5)
-        cv.destroyAllWindows()
+        # Goodbye, world. Each step is isolated so one failure cannot skip the
+        # others - above all the one that unlocks the cat flap.
         if state_machine is not None:
-            state_machine.exit()
+            _safely(state_machine.exit)
+        capture.stop()
+        if analysis is not None:
+            analysis.stop()
+        _safely(capture.join, 5)
+        if not args.headless:
+            _safely(cv.destroyAllWindows)
         if web is not None:
-            web.close()
+            _safely(web.close)
         if data is not None:
-            data.close()
-        img_src.close()
+            _safely(data.close)
+        _safely(img_src.close)
     return exit_code
 
 
@@ -165,6 +204,19 @@ def main():
         help="Record overlays in the video stream",
         action='store_true', 
         required=False)
+    parser.add_argument(
+        '--record_video',
+        help="Record a video clip around every event, including the seconds before it",
+        action='store_true',
+        required=False)
+    parser.add_argument(
+        '--preroll',
+        help="Seconds of video to keep from before the event",
+        type=float, default=3.0, required=False)
+    parser.add_argument(
+        '--postroll',
+        help="Seconds of video to keep after the last activity",
+        type=float, default=5.0, required=False)
     parser.add_argument(
         '--show_trigger', 
         help="Show trigger area for motion detection",

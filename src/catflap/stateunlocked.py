@@ -3,6 +3,7 @@ import numpy as np
 
 from statetypes import TState, GlobalData, Event, States, CatDetection
 from base_logger import logger
+from detections import draw_detections
 
 
 class UnlockedState(TState):
@@ -18,7 +19,7 @@ class UnlockedState(TState):
         detected or a timeout takes it back to idle'''
         retval = States.UNLOCKED
 
-        for d in data.tflite.detect(event.payload):
+        for d in event.detections:
             eval = data.evaluation.add_record(d.label, d.score)
             logger.debug(f'{self.__class__.__name__} evaluated {d.label} {d.score} results {eval.name}')
 
@@ -29,7 +30,7 @@ class UnlockedState(TState):
         # Record or show the detection results
         if data.headless == False:
             new_image = event.payload.copy()
-            cv.imshow(data.window_name, data.tflite.create_overlays(new_image))
+            cv.imshow(data.window_name, draw_detections(new_image, event.detections))
             cv.waitKey(1)
 
         return retval
