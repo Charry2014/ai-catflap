@@ -1,7 +1,6 @@
 import cv2 as cv
 import numpy as np
 
-from tflite_detect import TFLiteDetect
 from evaluation import Evaluation
 from statetypes import TState, GlobalData, Event, States, CatDetection
 from base_logger import logger
@@ -17,7 +16,6 @@ class MovementLockedState(TState):
     def on_enter_state(self, event:Event, data:GlobalData) -> None:
         logger.info(f"PUML movementLockedState --> flapControl: cat-flap-lock")
         data.cat_flap_control.lock()
-        data.tflite = TFLiteDetect(data.args.model, data.args.enable_edgetpu, data.args.num_threads)
         data.evaluation = Evaluation(data._json_labels, data._json_eval, CatDetection)
         data.timeout_timer.start()
 
@@ -46,7 +44,7 @@ class MovementLockedState(TState):
         if data.headless == False:
             new_image = event.payload.copy()
             cv.imshow(data.window_name, data.tflite.create_overlays(new_image))
-            cv.waitKey(30)
+            cv.waitKey(1)
         # TODO - Record an image with the overlays
         # if(data.args.record_overlays == True):
         #     frame = create_overlays(frame, detections)

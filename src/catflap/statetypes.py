@@ -29,11 +29,16 @@ class CatDetection(int, Enum):
 
 class Event():
     '''Basic event wrapper class so state machine stays more generic'''
-    def __init__(self, event):
+    def __init__(self, event, ts: float = None, frame_id: int = None):
         self._event = event
+        # Capture time (time.monotonic()) and id of the frame, so states can
+        # reason about time without reading the clock themselves
+        self.ts = ts
+        self.frame_id = frame_id
 
     def __str__(self) -> str:
-        return f"{str(type(self._event))}{self._event.shape}"
+        shape = getattr(self._event, 'shape', None)
+        return f"{str(type(self._event))}{shape}"
 
     @property
     def payload(self):
@@ -94,7 +99,10 @@ class GlobalData():
         self.cat_flap_control = CatFlapControl()
         self.evaluation = None
         self.timeout_timer = None
+        # The TFLite detector. Loading the model is slow, so main creates it once at startup
         self.tflite = None
+        # Recent (ts, cropped frame) pairs used by the idle state for motion detection
+        self.idle_history = deque()
 
         # Create the image recorder
         self._image_recorder = image_recorder.image_recorder(self.args.record_path)
@@ -129,6 +137,10 @@ class GlobalData():
 
     def record_image(self, image: array, label:str):
         self._image_recorder(image, label)
+
+    def close(self) -> None:
+        '''Flush any queued recordings'''
+        self._image_recorder.close()
 
     @property
     def window_name(self) -> str:

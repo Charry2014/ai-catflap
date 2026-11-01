@@ -224,3 +224,6 @@ A minimal hacky logging wrapper to log both to the console and a file. Generally
 
 
 
+
+### Capture pipeline
+The camera runs on its own thread (`capturethread.py`) and publishes timestamped, read-only frames to a ring buffer (`framebus.py`) at 15 fps. The main loop always takes the newest frame, so if detection is slower than the camera frames are skipped instead of queued. Slow work (JPEG writes, website preview) runs on background threads (`backgroundworker.py`) and never blocks capture. The TFLite model is loaded once at startup. Every 30 s the log shows captured / processed / skipped frame counts and latency. Video files are replayed at their recorded frame rate. Tests: `pip install pytest && pytest test/`.

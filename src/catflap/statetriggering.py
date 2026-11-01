@@ -1,7 +1,6 @@
 import cv2 as cv
 import numpy as np
 
-from tflite_detect import TFLiteDetect
 from evaluation import Evaluation
 from statetypes import TState, GlobalData, Event, States, CatDetection
 from base_logger import logger
@@ -19,7 +18,6 @@ class TriggeringState(TState):
             reset the evaluation class ready for the next event sequence'''
         # logger.info(f"Entering {self.__class__.__name__} state")
         # logger.info(f"PUML idleState --> flapControl: cat-flap-unlock")
-        data.tflite = TFLiteDetect(data.args.model, data.args.enable_edgetpu, data.args.num_threads)
         data.evaluation = Evaluation(data._json_labels, data._json_trigger, CatDetection)
 
     def run(self, event:Event, data:GlobalData) -> States:
@@ -45,7 +43,7 @@ class TriggeringState(TState):
             if data.headless == False:
                 new_image = event.payload.copy()
                 cv.imshow(data.window_name, data.tflite.create_overlays(new_image))
-                cv.waitKey(30)
+                cv.waitKey(1)
             # TODO - Record an image with the overlays
             # if(data.args.record_overlays == True):
             #     frame = create_overlays(frame, detections)

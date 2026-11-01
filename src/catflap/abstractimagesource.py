@@ -9,6 +9,9 @@ class AbstractImageSource(ABC):
             setattr(self, key, value)
         assert getattr(self, 'source')
         self._isopen = False
+        # Frame rate of the source if it is not naturally real-time (video files).
+        # When set, the capture thread paces get_image() to this rate.
+        self.fps = None
 
     @property
     def isopen(self) -> bool:

@@ -30,6 +30,8 @@ class ImageSourceMP4Video(AbstractImageSource):
             return 1
         self.size = (int(self.cap.get(cv.CAP_PROP_FRAME_WIDTH)),
             int(self.cap.get(cv.CAP_PROP_FRAME_HEIGHT)))
+        fps = self.cap.get(cv.CAP_PROP_FPS)
+        self.fps = fps if fps and fps > 0 else 15.0  # replay at recorded speed, like a live camera
         self._isopen = True
         return 0
 

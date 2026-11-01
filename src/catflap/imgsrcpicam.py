@@ -9,14 +9,21 @@ from base_logger import logger
 Picamera2.set_logging(Picamera2.INFO)
 
 class ImageSourcePiCamera(AbstractImageSource):
+    FPS = 15  # Matches the video recorder
+
     def __init__(self, **kwargs):
         super(ImageSourcePiCamera, self).__init__(**kwargs)
 
         self.picam2 = Picamera2()
-        config = self.picam2.create_still_configuration(main={"size": (640, 480), "format": "RGB888"}, 
-                                            transform=libcamera.Transform(hflip=1, vflip=1))
+        # A video (streaming) configuration keeps the camera pipeline running with a
+        # steady frame cadence. The still configuration used before is meant for
+        # single shots and gives irregular, high latency frames in a loop.
+        frame_us = int(1_000_000 / self.FPS)
+        config = self.picam2.create_video_configuration(
+            main={"size": (640, 480), "format": "RGB888"},
+            transform=libcamera.Transform(hflip=1, vflip=1),
+            controls={"FrameDurationLimits": (frame_us, frame_us)})
         self.picam2.configure(config)
-        self.picam2.still_configuration.align()
 
     @staticmethod
     def can_supply_images(source: str) -> bool:

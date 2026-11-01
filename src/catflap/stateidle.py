@@ -7,6 +7,10 @@ from base_logger import logger
 
 
 class IdleState(TState):
+    # Each frame is compared with the newest frame at least this old (seconds).
+    # Frames now arrive continuously, but slow movement still needs a gap between
+    # the two images to show as a difference.
+    REFERENCE_AGE = 1.0
 
     '''Idle state is slow monitoring of the camera, looking for movement'''
     def __init__(self, *args, **kwargs) -> None:
@@ -16,18 +20,24 @@ class IdleState(TState):
         '''When we return to idle we unlock the cat flap, so cats can exit from the inside'''
         data.cat_flap_control.unlock()
         data.timeout_timer.cancel()
+        data.idle_history.clear()  # Anything from before is stale
 
     def run(self, event:Event, data:GlobalData) -> States:
         '''
         Detect movement
-        No movement? Sleep 1 second. Return States.IDLE
-        evaluation.add_record(event.label, event.score)
+        No movement? Stay idle. This never sleeps: the capture thread paces the frames.
         '''
         retval = States.IDLE
-        frame1, frame2 = data.get_images(2) # Get newest 2 images from queue
-
-        cp1 = frame1[data.trigger_br:data.trigger_brh, data.trigger_bc:data.trigger_bcw].copy()
+        frame2 = event.payload
         cp2 = frame2[data.trigger_br:data.trigger_brh, data.trigger_bc:data.trigger_bcw].copy()
+
+        # Keep a short history of the trigger area and compare with the newest
+        # entry that is at least REFERENCE_AGE old (or the oldest we have yet)
+        history = data.idle_history
+        history.append((event.ts, cp2))
+        while len(history) > 1 and history[1][0] <= event.ts - self.REFERENCE_AGE:
+            history.popleft()
+        cp1 = history[0][1]
 
         diff = cv.absdiff(cp1, cp2)
         diff_gray = cv.cvtColor(diff, cv.COLOR_BGR2GRAY)
@@ -47,7 +57,7 @@ class IdleState(TState):
                     cv.rectangle(new_image, (x+data.trigger_bc, y+data.trigger_br), (x+data.trigger_bc+w, y+data.trigger_br+h), colour, 2)
 
             cv.imshow(data.window_name, new_image)
-            cv.waitKey(30)
+            cv.waitKey(1)
 
         # Check if enough movement is found - is there a big enough rectangle
         total_area = 0
@@ -58,8 +68,6 @@ class IdleState(TState):
                 data.record_image(frame2, "movement")
                 data.timeout_timer.start()
                 break
-        else:
-            time.sleep(1)
         
         return retval
 

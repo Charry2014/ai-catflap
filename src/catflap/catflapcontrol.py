@@ -66,7 +66,7 @@ class CatFlapControl():
 
     def exit(self) -> None:
         logger.debug(f"{self.__class__.__name__} exiting")
-        self.cat_flap_unlock()
+        self.unlock()
         if CPU == "i386":
             pass
         else:
