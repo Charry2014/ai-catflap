@@ -238,4 +238,24 @@ Work is split over threads that hand over data through small bounded buffers, so
 
 If the model is slower than the camera, frames are skipped, not queued. Results are tied to the capture time of their frame (`annotations.py`), so with `--record_overlays` the boxes in stills and video are drawn on the frame the model actually saw. The timeout timer posts an event instead of changing state from its own thread. The model is loaded once at startup. Every 30 s the log shows captured / analysed / skipped / dropped counts and latency. Video files are replayed at their recorded frame rate.
 
-Tests need no camera, Pi or TFLite: `pip install pytest && pytest test/` (Python 3.11 or older with `python-statemachine==2.0.0`).
+Tests need no camera or Pi: `pip install pytest && pytest test/` (Python 3.9 with `python-statemachine==2.0.0`, see the container below).
+
+### Running in a container
+The same image runs on the Mac (development, tests) and the Raspberry Pi (running the cat flap), so the Python and package versions are the same in both places. It uses Python 3.9 because `tflite-support` 0.4.3 has no wheels for newer versions, and every dependency is pinned in `docker/requirements.txt` (regenerate with the command in `docker/requirements.in`). The Pi needs a **64-bit** OS: there are no `tflite-support` wheels for 32-bit.
+
+```sh
+docker compose run --rm --build test        # run the tests, on the Mac or the Pi
+docker compose up --build                   # run against a stream, simulated flap (Mac)
+STREAM=/app/recordings/clip.mp4 docker compose up   # replay a recording (put it in ./recordings)
+```
+Settings are environment variables or a `.env` file (see `.env.example`). The model, the three JSON files, `recordings/` and `log/` are mounted from the checkout, so changing them needs a restart, not a rebuild.
+
+**On the Pi** the camera stays outside the container, because `picamera2` needs the system libcamera bindings which do not install into a Python 3.9 image. `docker/mjpeg_server.py` serves the camera as `http://<pi>:8000/stream.mjpg` using the system Python (`docker/catflap-camera.service` starts it at boot); the container reads that stream, and reconnects if it drops. Then:
+```sh
+docker compose -f docker-compose.yml -f docker-compose.pi.yml up -d --build
+```
+The Pi override gives the container `/dev/gpiomem` and sets `CATFLAP_GPIO=hardware`, so it refuses to start rather than run with a relay it cannot switch. Without it (`auto`) the flap is simulated, which is what you want on the Mac. `restart: unless-stopped` replaces the restart loop in `bin/catflap.sh`, and a healthcheck marks the container unhealthy if the log goes quiet (stuck camera or loop).
+
+Building for the Pi from a Mac: `docker buildx build --platform linux/arm64 -t ai-catflap .`
+
+**Not yet verified on real hardware:** the Pi camera server, GPIO inside the container (`/dev/gpiomem`; a Pi 5 needs `GPIO_LIB=rpi-lgpio` and `/dev/gpiochip*`), and the arm64 image build.

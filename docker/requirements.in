@@ -1,0 +1,10 @@
+# Direct dependencies of the container. requirements.txt is generated from this:
+#   uv pip compile docker/requirements.in --python-version 3.9 --universal -o docker/requirements.txt
+# Python 3.9 because tflite-support 0.4.3 only has wheels for cp37-cp39 (x86_64 and aarch64).
+tflite-support==0.4.3
+python-statemachine==2.0.0   # 2.1+ breaks the state classes
+numpy<2                      # tflite-support 0.4.3 is built against numpy 1.x
+opencv-python-headless       # no GUI in a container
+python-socketio
+requests
+websocket-client

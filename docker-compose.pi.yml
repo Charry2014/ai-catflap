@@ -1,0 +1,10 @@
+# Added on the Raspberry Pi:  docker compose -f docker-compose.yml -f docker-compose.pi.yml up -d
+services:
+  catflap:
+    environment:
+      CATFLAP_GPIO: hardware     # Refuse to run if the relay cannot be controlled
+    devices:
+      # RPi.GPIO (Pi 4 and older)
+      - /dev/gpiomem:/dev/gpiomem
+      # Pi 5 with GPIO_LIB=rpi-lgpio needs the GPIO chip instead (check `ls /dev/gpiochip*`):
+      # - /dev/gpiochip4:/dev/gpiochip4

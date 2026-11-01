@@ -1,0 +1,16 @@
+# Starts the camera stream at boot, on the Pi (not in the container):
+#   sudo cp docker/catflap-camera.service /etc/systemd/system/
+#   sudo systemctl enable --now catflap-camera
+# Edit the path and user to match where the repository is.
+[Unit]
+Description=Cat flap camera stream
+After=network.target
+
+[Service]
+User=pi
+ExecStart=/usr/bin/python3 /home/pi/catflap/docker/mjpeg_server.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

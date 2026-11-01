@@ -1,0 +1,11 @@
+.git
+.gitignore
+**/venv/
+**/__pycache__/
+*.pyc
+recordings/
+log/
+data/
+.vscode/
+.DS_Store
+docker-compose*.yml

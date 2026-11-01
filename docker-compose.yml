@@ -1,0 +1,50 @@
+# Cat flap in a container.
+#
+#   Mac / any PC:   docker compose up --build
+#   Raspberry Pi:   docker compose -f docker-compose.yml -f docker-compose.pi.yml up -d --build
+#   Tests:          docker compose run --rm --build test
+#
+# Settings come from the environment or a .env file next to this one, see .env.example.
+name: catflap
+
+services:
+  catflap:
+    image: ai-catflap:local
+    build:
+      context: .
+      target: runtime
+      args:
+        GPIO_LIB: ${GPIO_LIB:-RPi.GPIO}
+    restart: unless-stopped
+    environment:
+      # Camera number, video file (under /app/recordings or another mount), or stream URL.
+      # The default is the camera stream served by the Pi host, see docker/mjpeg_server.py
+      STREAM: ${STREAM:-http://host.docker.internal:8000/stream.mjpg}
+      TRIGGER: ${TRIGGER:-210,180,250,280}
+      WEBSITE: ${WEBSITE:-}
+      RECORD_VIDEO: ${RECORD_VIDEO:-0}
+      RECORD_OVERLAYS: ${RECORD_OVERLAYS:-0}
+      PREROLL: ${PREROLL:-3}
+      POSTROLL: ${POSTROLL:-5}
+      EXTRA_ARGS: ${EXTRA_ARGS:-}
+      # auto: use the GPIO if there is one, else simulate. The Pi override sets this to "hardware".
+      CATFLAP_GPIO: ${CATFLAP_GPIO:-auto}
+      TZ: ${TZ:-UTC}
+    volumes:
+      - ./recordings:/app/recordings
+      - ./log:/app/log
+      # The model and settings are mounted, so changing them needs a restart but no rebuild
+      - ${MODEL_FILE:-./test/cats.tflite}:/app/models/cats.tflite:ro
+      - ./labels.json:/app/labels.json:ro
+      - ./trigger_config.json:/app/trigger_config.json:ro
+      - ./eval_config.json:/app/eval_config.json:ro
+    extra_hosts:
+      # Reach services on the host (the camera stream) by name, on Linux as well as Docker Desktop
+      - "host.docker.internal:host-gateway"
+
+  test:
+    profiles: ["test"]
+    build:
+      context: .
+      target: test
+    image: ai-catflap:test
