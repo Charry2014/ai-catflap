@@ -21,6 +21,7 @@ services:
       # The default is the camera stream served by the Pi host, see docker/mjpeg_server.py
       STREAM: ${STREAM:-http://host.docker.internal:8000/stream.mjpg}
       TRIGGER: ${TRIGGER:-210,180,250,280}
+      DETECTOR: ${DETECTOR:-litert}
       WEBSITE: ${WEBSITE:-}
       RECORD_VIDEO: ${RECORD_VIDEO:-0}
       RECORD_OVERLAYS: ${RECORD_OVERLAYS:-0}

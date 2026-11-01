@@ -187,7 +187,7 @@ def test_mjpeg_server_can_be_read_by_the_stream_source(monkeypatch):
 def test_entrypoint_builds_the_command_line(tmp_path):
     env = dict(os.environ, STREAM="http://h/s.mjpg", TRIGGER="1,2,3,4", MODEL="/m.tflite",
                WEBSITE="http://w", RECORD_VIDEO="1", RECORD_OVERLAYS="0", PREROLL="4", POSTROLL="",
-               EXTRA_ARGS="--num_threads 2")
+               EXTRA_ARGS="--num_threads 2", DETECTOR="litert")
     fake_python = tmp_path / "python"
     fake_python.write_text('#!/bin/sh\necho "ARGS: $*"\n')
     fake_python.chmod(0o755)
@@ -198,4 +198,4 @@ def test_entrypoint_builds_the_command_line(tmp_path):
     assert "--stream http://h/s.mjpg" in line and "--web http://w" in line
     assert "--record_video" in line and "--record_overlays" not in line
     assert "--preroll 4" in line and "--postroll" not in line and line.endswith("--num_threads 2")
-    assert "--headless" in line
+    assert "--headless" in line and "--detector litert" in line

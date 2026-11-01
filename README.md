@@ -238,10 +238,10 @@ Work is split over threads that hand over data through small bounded buffers, so
 
 If the model is slower than the camera, frames are skipped, not queued. Results are tied to the capture time of their frame (`annotations.py`), so with `--record_overlays` the boxes in stills and video are drawn on the frame the model actually saw. The timeout timer posts an event instead of changing state from its own thread. The model is loaded once at startup. Every 30 s the log shows captured / analysed / skipped / dropped counts and latency. Video files are replayed at their recorded frame rate.
 
-Tests need no camera or Pi: `pip install pytest && pytest test/` (Python 3.9 with `python-statemachine==2.0.0`, see the container below).
+Tests need no camera or Pi: `pip install pytest && pytest test/` (`python-statemachine==2.0.0`, see the container below).
 
 ### Running in a container
-The same image runs on the Mac (development, tests) and the Raspberry Pi (running the cat flap), so the Python and package versions are the same in both places. It uses Python 3.9 because `tflite-support` 0.4.3 has no wheels for newer versions, and every dependency is pinned in `docker/requirements.txt` (regenerate with the command in `docker/requirements.in`). The Pi needs a **64-bit** OS: there are no `tflite-support` wheels for 32-bit.
+The same image runs on the Mac (development, tests) and the Raspberry Pi (running the cat flap), so the Python and package versions are the same in both places. It uses Python 3.12, and every dependency is pinned in `docker/requirements.txt` (regenerate with the command in `docker/requirements.in`). The Pi needs a **64-bit** OS.
 
 ```sh
 docker compose run --rm --build test        # run the tests, on the Mac or the Pi
@@ -250,7 +250,7 @@ STREAM=/app/recordings/clip.mp4 docker compose up   # replay a recording (put it
 ```
 Settings are environment variables or a `.env` file (see `.env.example`). The model, the three JSON files, `recordings/` and `log/` are mounted from the checkout, so changing them needs a restart, not a rebuild.
 
-**On the Pi** the camera stays outside the container, because `picamera2` needs the system libcamera bindings which do not install into a Python 3.9 image. `docker/mjpeg_server.py` serves the camera as `http://<pi>:8000/stream.mjpg` using the system Python (`docker/catflap-camera.service` starts it at boot); the container reads that stream, and reconnects if it drops. Then:
+**On the Pi** the camera stays outside the container, because `picamera2` needs the system libcamera bindings which do not install into the image's Python. `docker/mjpeg_server.py` serves the camera as `http://<pi>:8000/stream.mjpg` using the system Python (`docker/catflap-camera.service` starts it at boot); the container reads that stream, and reconnects if it drops. Then:
 ```sh
 docker compose -f docker-compose.yml -f docker-compose.pi.yml up -d --build
 ```
@@ -259,3 +259,10 @@ The Pi override gives the container `/dev/gpiomem` and sets `CATFLAP_GPIO=hardwa
 Building for the Pi from a Mac: `docker buildx build --platform linux/arm64 -t ai-catflap .`
 
 **Not yet verified on real hardware:** the Pi camera server, GPIO inside the container (`/dev/gpiomem`; a Pi 5 needs `GPIO_LIB=rpi-lgpio` and `/dev/gpiochip*`), and the arm64 image build.
+
+### Object detection backend
+Detection runs with `ai-edge-litert` (`src/modules/litert_detect.py`), the maintained successor of the TensorFlow Lite runtime. The old `tflite-support` Task library (`tflite_detect.py`) is still there, `--detector tflite-support`, but it only installs on Python 3.9. `--detector auto` (the default) takes litert if it is installed.
+
+The models and the training do not change. `src/buildtflite/` still trains with `tflite-model-maker` in its own environment and exports a `.tflite` file, and the litert detector reads those: it does the resizing the Task library did, reads the model's built in post-processing outputs, and takes the class names from the labelmap inside the model (falling back to `labels.json`).
+
+The two backends resize images slightly differently, so scores differ by a few hundredths and a detection sitting right on the 0.3 threshold can flip. **Before switching a cat flap over, run `src/tools/compare_detectors.py` over the stills in `recordings/`** (it needs both libraries, so use a Python 3.9 environment: `pip install tflite-support==0.4.3 ai-edge-litert "numpy<2" opencv-python-headless`). It reports how often the label and score agree and lists the images where the answer changes. On synthetic test images the top label agreed in 28 of 30 cases and the median score differed by 0.01; real recordings have not been compared yet.

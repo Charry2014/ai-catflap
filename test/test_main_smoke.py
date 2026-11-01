@@ -1,8 +1,6 @@
 '''The whole pipeline from a video file to recordings, with the ML model faked.'''
 import importlib
 import os
-import sys
-import types
 from types import SimpleNamespace
 
 import cv2 as cv
@@ -39,14 +37,12 @@ def test_video_file_to_stills_and_clip(tmp_path):
     make_video(video)
     out = tmp_path / "rec"
 
-    fake = types.ModuleType("tflite_detect")
-    fake.TFLiteDetect = FakeDetector
-    sys.modules["tflite_detect"] = fake
     import stateidle, statetriggering, statemovementlocked, statemouselocked, stateunlocked, states
     for m in (stateidle, statetriggering, statemovementlocked, statemouselocked, stateunlocked, states):
         importlib.reload(m)
     import main
     importlib.reload(main)
+    main.make_detector = lambda *a, **kw: FakeDetector()
 
     args = SimpleNamespace(
         stream=video, web=None, trigger="210,180,250,280", headless=True, record_path=str(out),

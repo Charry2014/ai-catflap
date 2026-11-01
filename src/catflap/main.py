@@ -1,4 +1,5 @@
 import cv2 as cv
+import json
 import numpy as np
 import queue
 import time
@@ -8,7 +9,7 @@ from base_logger import logger
 from states import CatFlapFSM, Event
 from imgsrcfactory import ImageSourceFactory
 from statetypes import GlobalData
-from tflite_detect import TFLiteDetect
+from detector import create_detector as make_detector
 from motion import MotionDetector
 from analysisthread import AnalysisThread
 from videorecorder import ClipRecorder
@@ -74,10 +75,20 @@ def _safely(fn, *args):
         logger.exception(f"Error during shutdown in {getattr(fn, '__name__', fn)}")
 
 
+def data_labels(args):
+    '''Class names from labels.json, used if a model has no labelmap of its own'''
+    try:
+        with open(args.label_json) as f:
+            return json.load(f)['labels']
+    except Exception:
+        return []
+
+
 def create_detector(args, size):
     '''Load the model once, and run a dummy frame through it so the first real
     detection is not slow.'''
-    detector = TFLiteDetect(args.model, args.enable_edgetpu, args.num_threads)
+    detector = make_detector(getattr(args, 'detector', 'auto'), args.model, args.enable_edgetpu,
+                             args.num_threads, labels=data_labels(args))
     blank = np.zeros((size[1], size[0], 3), np.uint8)
     for _ in detector.detect(blank):
         pass
@@ -285,6 +296,11 @@ def main():
         required=False,
         type=int,
         default=4)
+    parser.add_argument(
+        '--detector',
+        help='Object detection backend: litert (ai-edge-litert), tflite-support, or auto (litert if installed).',
+        choices=['auto', 'litert', 'tflite-support'],
+        default='auto')
     parser.add_argument(
         '--enable_edgetpu',
         help='Whether to run the model on EdgeTPU.',

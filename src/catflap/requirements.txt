@@ -1,7 +1,9 @@
 argparse
 numpy==1.24.1  # To ensure compatibility with OpenCV on Raspberry Pi.
 opencv-python~=4.5.3.56
-tflite-support==0.4.3
+ai-edge-litert
+# Legacy detector (--detector tflite-support), Python 3.9 only. Needed for src/tools/compare_detectors.py
+# tflite-support==0.4.3
 # tflite-runtime==2.11.0
 python-statemachine==2.0.0  # 2.1+ breaks the state classes (on_enter_state signature clash)
 #RPi.GPIO

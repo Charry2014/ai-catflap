@@ -5,6 +5,7 @@
 #   STREAM          camera number, video file, or http/rtsp/tcp stream URL
 #   TRIGGER         x,y,w,h of the movement trigger area
 #   MODEL           path of the .tflite model
+#   DETECTOR        litert (default in the image) or tflite-support
 #   WEBSITE         URL of the monitoring website (optional)
 #   RECORD_VIDEO    1 to record a video clip around every event
 #   RECORD_OVERLAYS 1 to draw the detections on stills and video
@@ -20,6 +21,7 @@ set -- python src/catflap/main.py \
     --stream "$STREAM" \
     --trigger "$TRIGGER" \
     --model "$MODEL" \
+    --detector "${DETECTOR:-auto}" \
     --record_path /app/recordings \
     --headless
 

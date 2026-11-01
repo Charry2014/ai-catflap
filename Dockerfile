@@ -3,9 +3,9 @@
 # One image for the Mac (development, tests) and the Raspberry Pi (running).
 # Build for the Pi from a Mac:  docker buildx build --platform linux/arm64 -t ai-catflap .
 #
-# Python 3.9: tflite-support 0.4.3 has no wheels for newer versions.
-# The Pi needs a 64-bit OS (aarch64); there are no tflite-support wheels for 32-bit.
-ARG PYTHON_VERSION=3.9
+# Object detection uses ai-edge-litert, which has wheels for current Python versions
+# on x86_64, aarch64 (a 64-bit OS on the Pi) and the Mac.
+ARG PYTHON_VERSION=3.12
 
 # ---------------------------------------------------------------- build
 # The full image has the compiler that RPi.GPIO needs; only the venv is copied out.
@@ -21,9 +21,9 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then pip install --no-cache-dir "$GPIO_LIB";
 
 # ---------------------------------------------------------------- base
 FROM python:${PYTHON_VERSION}-slim-bookworm AS base
-# Shared libraries the wheels (OpenCV, TFLite) expect from the system
+# Shared libraries the wheels (OpenCV, LiteRT) expect from the system
 RUN apt-get update \
- && apt-get install -y --no-install-recommends libglib2.0-0 libgomp1 libcap2 libudev1 libusb-1.0-0 \
+ && apt-get install -y --no-install-recommends libglib2.0-0 libgomp1 \
  && rm -rf /var/lib/apt/lists/*
 COPY --from=build /opt/venv /opt/venv
 ENV PATH=/opt/venv/bin:$PATH \
@@ -41,6 +41,7 @@ RUN chmod +x /entrypoint.sh && mkdir -p recordings log
 # Settings are environment variables, see docker/entrypoint.sh
 ENV STREAM=http://host.docker.internal:8000/stream.mjpg \
     TRIGGER=210,180,250,280 \
+    DETECTOR=litert \
     MODEL=/app/models/cats.tflite
 
 # ---------------------------------------------------------------- test
