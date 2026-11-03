@@ -1,5 +1,4 @@
 from collections import deque
-import numpy as np
 from enum import Enum
 from base_logger import logger
 

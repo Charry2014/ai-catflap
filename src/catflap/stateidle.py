@@ -1,7 +1,6 @@
 import cv2 as cv
 
 from statetypes import TState, GlobalData, Event, States
-from base_logger import logger
 
 
 class IdleState(TState):

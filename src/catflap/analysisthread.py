@@ -7,7 +7,6 @@ Results are posted to the state machine's event queue, which the main thread
 reads, so all state, GPIO and window handling stays on one thread.'''
 import queue
 import threading
-import time
 
 from base_logger import logger
 from framebus import FrameBus

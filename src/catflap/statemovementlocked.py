@@ -1,5 +1,4 @@
 import cv2 as cv
-import numpy as np
 
 from evaluation import Evaluation
 from statetypes import TState, GlobalData, Event, States, CatDetection
@@ -15,7 +14,7 @@ class MovementLockedState(TState):
         super(MovementLockedState, self).__init__(*args, **kwargs)
 
     def on_enter_state(self, event:Event, data:GlobalData) -> None:
-        logger.info(f"PUML movementLockedState --> flapControl: cat-flap-lock")
+        logger.info("PUML movementLockedState --> flapControl: cat-flap-lock")
         data.cat_flap_control.lock()
         data.evaluation = Evaluation(data._json_labels, data._json_eval, CatDetection)
         data.timeout_timer.start()

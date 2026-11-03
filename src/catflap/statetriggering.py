@@ -1,5 +1,4 @@
 import cv2 as cv
-import numpy as np
 
 from evaluation import Evaluation
 from statetypes import TState, GlobalData, Event, States, CatDetection

@@ -1,5 +1,4 @@
 import cv2 as cv
-import numpy as np
 
 from statetypes import TState, GlobalData, Event, States, CatDetection
 from base_logger import logger
@@ -11,7 +10,7 @@ class UnlockedState(TState):
         super(UnlockedState, self).__init__(*args, **kwargs)
 
     def on_enter_state(self, event:Event, data:GlobalData) -> None:
-        logger.info(f"PUML unlockedState --> flapControl: cat-flap-unlock")
+        logger.info("PUML unlockedState --> flapControl: cat-flap-unlock")
         data.cat_flap_control.unlock()
 
     def run(self, event:Event, data:GlobalData) -> States:

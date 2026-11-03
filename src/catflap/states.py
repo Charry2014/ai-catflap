@@ -1,6 +1,5 @@
 
 from statemachine import StateMachine
-import sys
 from base_logger import logger
 from catflapcontrol import CatFlapControl
 from statetimer import StateTimer
@@ -106,7 +105,7 @@ class CatFlapFSM(StateMachine):
 
     def exit(self):
         '''Called when the state machine must exit. Unlock cat flap and exit.'''
-        logger.info(f"Handling state machine exit event")
+        logger.info("Handling state machine exit event")
         self._global_data.timeout_timer.cancel()
         self._global_data.cat_flap_control.unlock()
 
@@ -164,51 +163,3 @@ class CatFlapFSM(StateMachine):
 
     # def on_enter_movementLockedState(self, event, state):
     #     pass
-
-def main(data):
-
-    # Create a test data structure - same as it would come from the ML system
-    detections = TFLDetections("Name")
-    for d in data:
-        (index, name, score, origin_x, origin_y, width, height) = d
-        detections.add(name, index, score, BoundingRect(origin_x, origin_y, width, height))
-
-    # Run the data set through the event handler
-    fsm = CatFlapFSM()
-    for d in detections:
-        fsm.event_handle(Event(d))
-
-    import time
-    i = 0
-    while i < 90:
-        i += 1
-        time.sleep(1)
-    a = [s.name for s in fsm.states]
-    print(a)
-    b = [s for s in fsm.states_map]
-    print(b)
-
-
-# Running image classification on /Users/toby/work/projects/catflap/data/test_data/Cat-with-mouse-52-20230804-001533.496_catcam.jpg
-# Number of detections 3 in /Users/toby/work/projects/catflap/data/test_data/Cat-with-mouse-52-20230804-001533.496_catcam.jpg
-# 1:Cat-with-mouse    0.55   BoundingRect(origin_x=67, origin_y=-5, width=441, height=181)
-# 1:Cat-with-mouse    0.36   BoundingRect(origin_x=177, origin_y=-2, width=454, height=255)
-# 1:Cat-with-mouse    0.36   BoundingRect(origin_x=58, origin_y=13, width=563, height=382)
-# 
-# BoundingBox(origin_x=190, origin_y=327, width=109, height=113
-data = [
-        (2, "Background", 0.53, 190, 327,109,113),
-        (2, "Background", 0.53, 190, 327,108,113),
-        (2, "Background", 0.53, 190, 327,107,113),
-        (2, "Background", 0.53, 190, 327,106,113),
-        (0, "Cat-alone",  0.53, 190, 327,105,113),
-        (0, "Cat-alone",  0.53, 190, 327,104,113),
-        (0, "Cat-alone",  0.53, 190, 327,103,113),
-        (0, "Cat-alone",  0.55, 194, 337,119,133),
-        (0, "Cat-alone",  0.59, 195, 347,122,183),
-        (0, "Cat-alone",  0.63, 199, 357,199,193)
-       ]
-
-if __name__ == "__main__":
-    # logger.basicConfig(level=logger.DEBUG)
-    main(data)

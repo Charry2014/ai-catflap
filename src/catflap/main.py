@@ -122,7 +122,7 @@ def main_loop(args):
         except Exception:
             logger.error(f"Connection to {args.web} failed")
         else:
-            logger.info(f"Connected to web server")
+            logger.info("Connected to web server")
             web = WebPublisher(sio)
 
     exit_code = 0

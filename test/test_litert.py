@@ -1,6 +1,5 @@
 '''The ai-edge-litert detector, with the real model.'''
 import os
-import shutil
 
 import cv2 as cv
 import numpy as np

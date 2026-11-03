@@ -152,9 +152,6 @@ class GlobalData():
     def add_event(self, event:Event):
         self._event_queue.append(event)
 
-    def get_images(self, count=1) -> list:
-        return [e.payload for e in list(self._event_queue)[(-1 * count):]]
-
     def record_image(self, image: array, label: str, detections=None):
         '''Save a still. With --record_overlays the detection results are drawn on it.'''
         if detections and getattr(self.args, 'record_overlays', False):

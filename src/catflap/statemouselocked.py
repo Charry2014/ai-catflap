@@ -1,7 +1,5 @@
 import cv2 as cv
-import numpy as np
 
-from evaluation import Evaluation
 from statetypes import TState, GlobalData, Event, States, CatDetection
 from base_logger import logger
 from detections import draw_detections
@@ -14,7 +12,7 @@ class MouseLockedState(TState):
         super(MouseLockedState, self).__init__(*args, **kwargs)
 
     def on_enter_state(self, event:Event, data:GlobalData) -> None:
-        logger.info(f"PUML mouseLockedState --> flapControl: cat-flap-lock")
+        logger.info("PUML mouseLockedState --> flapControl: cat-flap-lock")
         data.cat_flap_control.lock()
         data.timeout_timer.start()
 

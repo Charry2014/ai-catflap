@@ -7,29 +7,7 @@ import cv2 as cv
 from detections import BoundingRect, TFLDetection
 
 
-from datetime import datetime
-from os import path
-
-
-# Visualization parameters
-row_size = 20  # pixels
-left_margin = 24  # pixels
-text_color = (255, 55, 0)
-font_size = 1
-font_thickness = 1
-
-
-
-
-def make_outfile_name(record_path, label, prob=1):
-    datestr = datetime.now().strftime("%Y%m%d-%H%M%S.%f")[:-3]
-    prob = int(prob * 100)
-    outfile = path.join(record_path, f"{label}-{str(prob)}-{datestr}_catcam.jpg")
-    return outfile
-
-
 class TFLiteDetect(object):
-
 
     def __init__(self, model, use_coral, num_threads):
         self.file_name=model
@@ -72,17 +50,3 @@ class TFLiteDetect(object):
                                         d.bounding_box.width, d.bounding_box.height )
             for c in d.categories:
                 yield TFLDetection(c.category_name, c.index, c.score, rect)
-
-
-    def create_overlays(self, frame):
-        for d in self._last_result:
-            bounds = d.bounding_box
-            for c in d.categories:
-                name, score = c.category_name, c.score
-                cv.rectangle(frame, (bounds.origin_x, bounds.origin_y), 
-                            (bounds.origin_x+bounds.width, bounds.origin_y+bounds.height), (255, 55, 0), 2)
-                text_location = (bounds.origin_x, bounds.origin_y)
-                text = f"{name} {score:.2f}"
-                cv.putText(frame, text, text_location, cv.FONT_HERSHEY_PLAIN,
-                            font_size, text_color, font_thickness)
-        return frame

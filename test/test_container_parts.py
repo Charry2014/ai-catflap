@@ -1,5 +1,4 @@
 '''Pieces the container relies on: GPIO fallback, stream sources, and the camera stream server.'''
-import io
 import os
 import subprocess
 import sys
